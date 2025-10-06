@@ -1,6 +1,6 @@
 # Upah Tukang — Cloudflare Pages (Functions + KV)
 
-UI responsif (HTML/JS + Tailwind CDN) dengan backend **Cloudflare Pages Functions** memakai **KV binding `UPAH_KV`**.
+UI responsif (HTML/JS + Tailwind CDN) dengan backend **Cloudflare Pages Functions** memakai **KV binding `UPAH_KV`** (fallback in-memory otomatis saat binding tidak tersedia untuk pengembangan lokal).
 
 ## Fitur utama
 - Tiga halaman: `index.html`, `form.html`, `rekap.html` — tampilan seragam, mobile-first.

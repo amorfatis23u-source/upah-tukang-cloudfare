@@ -8,6 +8,8 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+import { getKVBinding } from './_kv';
+
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method.toUpperCase() !== 'GET') {
@@ -24,10 +26,7 @@ export async function onRequest(context) {
   limit = Math.min(Math.max(limit, 1), 200);
 
   try {
-    if (!env.UPAH_KV || typeof env.UPAH_KV.list !== 'function') {
-      throw new Error('Binding UPAH_KV tidak tersedia');
-    }
-
+    const { kv } = getKVBinding(env);
     const listOptions = { limit };
     if (prefix) {
       listOptions.prefix = prefix;
@@ -36,7 +35,7 @@ export async function onRequest(context) {
       listOptions.cursor = cursor;
     }
 
-    const listResult = await env.UPAH_KV.list(listOptions);
+    const listResult = await kv.list(listOptions);
     const keys = (listResult.keys || []).map((entry) => ({
       name: entry.name,
       expiration: entry.expiration || null,
