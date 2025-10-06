@@ -1,55 +1,84 @@
-function jsonResponse(data, status = 200) {
+import { getKVBinding } from './_kv';
+
+function json(data, { status = 200, headers = {} } = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store'
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      ...headers
     }
   });
 }
 
-import { getKVBinding } from './_kv';
+export async function onRequest({ request, env }) {
+  if (request.method === 'OPTIONS') {
+    return json({}, { status: 204 });
+  }
 
-export async function onRequest(context) {
-  const { request, env } = context;
   if (request.method.toUpperCase() !== 'GET') {
-    return jsonResponse({ ok: false, error: 'Metode tidak didukung' }, 405);
+    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   }
+
+  const { kv } = getKVBinding(env);
+  if (!kv) {
+    return json({ ok: false, error: 'KV binding UPAH_KV not found' }, { status: 500 });
+  }
+
   const url = new URL(request.url);
-  const prefix = url.searchParams.get('prefix') || '';
-  const cursor = url.searchParams.get('cursor') || undefined;
+  const prefix = url.searchParams.get('prefix') || 'ut:snap:';
   const limitParam = url.searchParams.get('limit');
-  let limit = Number.parseInt(limitParam, 10);
+  const cursor = url.searchParams.get('cursor') || undefined;
+  const withValues = url.searchParams.get('values') === '1';
+
+  let limit = Number.parseInt(limitParam || '100', 10);
   if (!Number.isFinite(limit) || limit <= 0) {
-    limit = 50;
+    limit = 100;
   }
-  limit = Math.min(Math.max(limit, 1), 200);
+  limit = Math.min(Math.max(limit, 1), 500);
 
   try {
-    const { kv } = getKVBinding(env);
-    const listOptions = { limit };
-    if (prefix) {
-      listOptions.prefix = prefix;
-    }
+    const options = { prefix, limit };
     if (cursor) {
-      listOptions.cursor = cursor;
+      options.cursor = cursor;
     }
 
-    const listResult = await kv.list(listOptions);
-    const keys = (listResult.keys || []).map((entry) => ({
-      name: entry.name,
-      expiration: entry.expiration || null,
-      metadata: entry.metadata || {}
-    }));
-    return jsonResponse({
+    const iter = await kv.list(options);
+    const items = [];
+    const keys = [];
+
+    for (const entry of iter.keys || []) {
+      const baseMeta = entry.metadata || {};
+      let value;
+      let metadata = baseMeta;
+
+      if (withValues) {
+        const detail = await kv.getWithMetadata(entry.name, { type: 'json' });
+        value = detail?.value ?? null;
+        metadata = detail?.metadata ?? baseMeta ?? {};
+      }
+
+      items.push({
+        key: entry.name,
+        metadata,
+        ...(withValues ? { value } : {})
+      });
+      keys.push({ name: entry.name, metadata: metadata || {} });
+    }
+
+    return json({
       ok: true,
-      keys,
-      cursor: listResult.cursor || '',
-      list_complete: Boolean(listResult.list_complete)
+      prefix,
+      count: items.length,
+      cursor: iter.cursor || '',
+      list_complete: Boolean(iter.list_complete),
+      items,
+      keys
     });
   } catch (err) {
     console.error('api/list error', err);
-    const message = err?.message ? `Gagal mengambil daftar: ${err.message}` : 'Gagal mengambil daftar';
-    return jsonResponse({ ok: false, error: message }, 500);
+    return json({ ok: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }

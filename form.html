@@ -7,6 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="module">
+    import { api } from "./assets/js/config.js";
+    window.UpahAPI = window.UpahAPI || api();
+  </script>
   <style>
     :root {
       color-scheme: light dark;
@@ -2204,7 +2208,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let key = state.currentKey;
       if (!key) {
-        key = buildSnapshotKey({ start: payload.start, end: payload.end, rumah: payload.rumah, uuid: params.get('new') || undefined });
+        const uuidHint = params.get('new') || undefined;
+        if (window.UpahAPI && typeof window.UpahAPI.makeSnapKey === 'function') {
+          key = window.UpahAPI.makeSnapKey({
+            periodeStart: payload.start || '',
+            periodeEnd: payload.end || '',
+            rumah: payload.rumah || '',
+            uuid: uuidHint
+          });
+        } else {
+          key = buildSnapshotKey({ start: payload.start, end: payload.end, rumah: payload.rumah, uuid: uuidHint });
+        }
       }
 
       await api.saveSnapshot(key, payload, meta);
@@ -2341,6 +2355,124 @@ document.addEventListener('DOMContentLoaded', () => {
     save: persistSnapshot,
     restore: restoreSnapshot
   };
+</script>
+
+<script type="module">
+  const ensureApi = async () => {
+    if (window.UpahAPI) return window.UpahAPI;
+    const mod = await import('./assets/js/config.js');
+    return mod.api();
+  };
+
+  const API = await ensureApi();
+  const params = new URLSearchParams(location.search);
+
+  const escapeCSS = (value) => {
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+      return window.CSS.escape(value);
+    }
+    return String(value).replace(/([\0-\x1f\x7f-\x9f!"#$%&'()*+,./:;<=>?@\[\\\]^`{|}~])/g, '\\$1');
+  };
+
+  function deriveCompositeKey() {
+    const urlKey = params.get('key');
+    if (urlKey) return urlKey;
+
+    const start = document.querySelector('#periodStart')?.value?.trim() || '';
+    const end = document.querySelector('#periodEnd')?.value?.trim() || '';
+    let rumah = '';
+    const rumahChip = document.querySelector('#rumahList span span');
+    if (rumahChip) {
+      rumah = rumahChip.textContent.trim();
+    }
+    const combined = [start, end, rumah].filter(Boolean).join('|');
+    if (combined) return combined;
+
+    try {
+      const storageKey = 'ut:autosave:tempKey';
+      let uuid = sessionStorage.getItem(storageKey);
+      if (!uuid) {
+        uuid = crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+        sessionStorage.setItem(storageKey, uuid);
+      }
+      return uuid;
+    } catch (err) {
+      return crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    }
+  }
+
+  const formKey = deriveCompositeKey();
+  const AUTOKEY = `ut:autosave:${formKey}`;
+  let saveTimer;
+  let inflight = false;
+
+  function readForm() {
+    const data = {};
+    document.querySelectorAll('input, select, textarea').forEach((el) => {
+      if (!el.name) return;
+      if (el.type === 'checkbox') {
+        data[el.name] = !!el.checked;
+      } else if (el.type === 'radio') {
+        if (el.checked) {
+          data[el.name] = el.value;
+        } else if (!(el.name in data)) {
+          data[el.name] = '';
+        }
+      } else {
+        data[el.name] = el.value;
+      }
+    });
+    return data;
+  }
+
+  function applyForm(data = {}) {
+    Object.entries(data).forEach(([name, value]) => {
+      const el = document.querySelector(`[name="${escapeCSS(name)}"]`);
+      if (!el) return;
+      if (el.type === 'checkbox') {
+        if (typeof value === 'boolean') {
+          el.checked = value;
+        }
+      } else if (el.type === 'radio') {
+        const radio = document.querySelector(`input[type="radio"][name="${escapeCSS(name)}"][value="${escapeCSS(value)}"]`);
+        if (radio) radio.checked = true;
+      } else if (value !== undefined && value !== null && value !== '') {
+        el.value = value;
+      }
+    });
+  }
+
+  async function flushSave() {
+    if (inflight) return;
+    inflight = true;
+    try {
+      const payload = readForm();
+      await API.setRaw(AUTOKEY, payload);
+    } catch (err) {
+      console.warn('autosave gagal', err);
+    } finally {
+      inflight = false;
+    }
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 500);
+  }
+
+  try {
+    const saved = await API.getRaw(AUTOKEY);
+    if (saved && typeof saved === 'object') {
+      applyForm(saved);
+    }
+  } catch (err) {
+    console.warn('gagal memuat autosave', err);
+  }
+
+  document.addEventListener('input', scheduleSave);
+  document.addEventListener('change', scheduleSave);
+
+  window.upahAutosave = { key: formKey, storageKey: AUTOKEY };
 </script>
 
 </body>

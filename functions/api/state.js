@@ -1,35 +1,42 @@
-const MAX_VALUE_SIZE = 200 * 1024; // 200KB
-const ALLOWED_META_KEYS = ['updatedAt', 'start', 'end', 'rumah', 'total', 'totalDays'];
+import { getKVBinding } from './_kv';
 
-function jsonResponse(data, status = 200) {
+function json(data, { status = 200, headers = {} } = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store'
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      ...headers
     }
   });
 }
-
-import { getKVBinding } from './_kv';
 
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
+  const keyParam = url.searchParams.get('key');
+
+  if (method === 'OPTIONS') {
+    return json({}, { status: 204 });
+  }
+
   const { kv } = getKVBinding(env);
+  if (!kv) {
+    return json({ ok: false, error: 'KV binding UPAH_KV not found' }, { status: 500 });
+  }
 
   try {
     if (method === 'GET') {
-      const key = url.searchParams.get('key');
-      if (!key) {
-        return jsonResponse({ ok: false, error: 'Parameter key wajib' }, 400);
+      if (!keyParam) {
+        return json({ ok: false, error: 'key required' }, { status: 400 });
       }
-      const result = await kv.getWithMetadata(key, { type: 'json' });
-      if (!result || result.value === null || result.value === undefined) {
-        return jsonResponse({ ok: false, error: 'Data tidak ditemukan' }, 404);
-      }
-      return jsonResponse({ ok: true, key, value: result.value, meta: result.metadata || {} });
+      const result = await kv.getWithMetadata(keyParam, { type: 'json' });
+      const value = result?.value ?? null;
+      const meta = result?.metadata ?? null;
+      return json({ ok: true, key: keyParam, value, meta });
     }
 
     if (method === 'POST') {
@@ -37,60 +44,36 @@ export async function onRequest(context) {
       try {
         payload = await request.json();
       } catch (err) {
-        return jsonResponse({ ok: false, error: 'Body harus JSON' }, 400);
-      }
-      const { key, value, meta = {} } = payload || {};
-      if (typeof key !== 'string' || !key.trim()) {
-        return jsonResponse({ ok: false, error: 'Key tidak valid' }, 400);
-      }
-      if (value === undefined) {
-        return jsonResponse({ ok: false, error: 'Value tidak boleh kosong' }, 400);
+        payload = {};
       }
 
-      const stringified = JSON.stringify(value);
-      if (stringified.length > MAX_VALUE_SIZE) {
-        return jsonResponse({ ok: false, error: `Payload terlalu besar (maks ${MAX_VALUE_SIZE} byte)` }, 413);
+      const key = payload?.key || keyParam;
+      if (!key) {
+        return json({ ok: false, error: 'key required' }, { status: 400 });
       }
 
-      const safeMeta = {};
-      const nowISO = new Date().toISOString();
-      if (meta && typeof meta === 'object') {
-        for (const keyName of ALLOWED_META_KEYS) {
-          if (meta[keyName] !== undefined) {
-            safeMeta[keyName] = meta[keyName];
-          }
-        }
-      }
-      if (!safeMeta.updatedAt) {
-        safeMeta.updatedAt = nowISO;
-      }
-      if (!safeMeta.start && typeof value === 'object' && value) {
-        safeMeta.start = value.start || value.periodStart || null;
-      }
-      if (!safeMeta.end && typeof value === 'object' && value) {
-        safeMeta.end = value.end || value.periodEnd || null;
-      }
-      if (!safeMeta.rumah && typeof value === 'object' && value) {
-        safeMeta.rumah = value.rumah || value.rumahUtama || null;
-      }
-      safeMeta.valueSize = stringified.length;
+      const value = payload?.value ?? null;
+      const meta = payload && typeof payload.meta === 'object' && payload.meta !== null
+        ? payload.meta
+        : null;
 
-      await kv.put(key, stringified, { metadata: safeMeta });
-      return jsonResponse({ ok: true, key, meta: safeMeta });
+      const options = meta ? { metadata: meta } : undefined;
+      await kv.put(key, JSON.stringify(value), options);
+
+      return json({ ok: true, key, meta });
     }
 
     if (method === 'DELETE') {
-      const key = url.searchParams.get('key');
-      if (!key) {
-        return jsonResponse({ ok: false, error: 'Parameter key wajib' }, 400);
+      if (!keyParam) {
+        return json({ ok: false, error: 'key required' }, { status: 400 });
       }
-      await kv.delete(key);
-      return jsonResponse({ ok: true, key });
+      await kv.delete(keyParam);
+      return json({ ok: true, key: keyParam });
     }
 
-    return jsonResponse({ ok: false, error: 'Metode tidak didukung' }, 405);
+    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   } catch (err) {
     console.error('api/state error', err);
-    return jsonResponse({ ok: false, error: 'Terjadi kesalahan internal' }, 500);
+    return json({ ok: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }

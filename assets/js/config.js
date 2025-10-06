@@ -31,25 +31,101 @@ async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DEL
   throw lastErr || new Error('Gagal memuat');
 }
 
-export const API = {
-  async get(key) {
+function normaliseBase(base = '/api') {
+  if (!base) return '';
+  if (/^https?:/i.test(base)) return base.replace(/\/$/, '');
+  return base.endsWith('/') ? base.slice(0, -1) : base;
+}
+
+export function api(base = '/api') {
+  const normalised = normaliseBase(base);
+  const toUrl = (path = '') => {
+    if (/^https?:/i.test(path)) return path;
+    if (!normalised) return path || '';
+    if (!path) return normalised;
+    return `${normalised}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
+
+  const client = {};
+
+  client.getRaw = async function getRaw(key) {
     if (!key) throw new Error('key wajib');
-    return jsonRequest(`/api/state?key=${encodeURIComponent(key)}`);
-  },
-  async set(key, value, meta = {}) {
+    const res = await jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`));
+    return res?.value ?? null;
+  };
+
+  client.setRaw = async function setRaw(key, value) {
     if (!key) throw new Error('key wajib');
-    return jsonRequest('/api/state', { method: 'POST', body: { key, value, meta } });
-  },
-  async del(key) {
+    return jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value } });
+  };
+
+  client.del = async function del(key) {
     if (!key) throw new Error('key wajib');
-    return jsonRequest(`/api/state?key=${encodeURIComponent(key)}`, { method: 'DELETE' });
-  },
-  async list(prefix, cursor = '', limit = 50) {
+    return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`), { method: 'DELETE' });
+  };
+
+  client.listSnapshots = async function listSnapshots(prefix = 'ut:snap:', { limit = 100, values = false } = {}) {
+    const search = new URLSearchParams();
+    if (prefix) search.set('prefix', prefix);
+    if (limit) search.set('limit', String(limit));
+    if (values) search.set('values', '1');
+    const res = await jsonRequest(toUrl(`/list?${search.toString()}`));
+    return res?.items ?? [];
+  };
+
+  client.makeSnapKey = function makeSnapKey({ periodeStart, periodeEnd, rumah, uuid }) {
+    const clean = (val) => {
+      if (val === null || val === undefined) return '';
+      return String(val).trim().replace(/\s+/g, '-');
+    };
+    const ps = clean(periodeStart);
+    const pe = clean(periodeEnd);
+    const rm = clean(rumah);
+    const id = uuid || (crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+    return `ut:snap:${ps}:${pe}:${rm}:${id}`;
+  };
+
+  client.get = async function get(key) {
+    if (!key) throw new Error('key wajib');
+    return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`));
+  };
+
+  client.set = async function set(key, value, meta = {}) {
+    if (!key) throw new Error('key wajib');
+    return jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value, meta } });
+  };
+
+  client.deleteKey = async function deleteKey(key) {
+    return client.del(key);
+  };
+
+  client.list = async function list(prefix = '', cursor = '', limit = 50, options = {}) {
     const search = new URLSearchParams();
     if (prefix) search.set('prefix', prefix);
     if (cursor) search.set('cursor', cursor);
     if (limit) search.set('limit', String(limit));
-    return jsonRequest(`/api/list?${search.toString()}`);
+    if (options?.values) search.set('values', '1');
+    const query = search.toString();
+    return jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
+  };
+
+  return client;
+}
+
+const defaultClient = api();
+
+export const API = {
+  async get(key) {
+    return defaultClient.get(key);
+  },
+  async set(key, value, meta = {}) {
+    return defaultClient.set(key, value, meta);
+  },
+  async del(key) {
+    return defaultClient.del(key);
+  },
+  async list(prefix, cursor = '', limit = 50) {
+    return defaultClient.list(prefix, cursor, limit);
   }
 };
 
@@ -175,4 +251,10 @@ export function formatError(err) {
   if (!err) return 'Terjadi kesalahan';
   if (typeof err === 'string') return err;
   return err.message || 'Terjadi kesalahan tak diketahui';
+}
+
+export const UpahAPI = defaultClient;
+
+if (typeof window !== 'undefined') {
+  window.UpahAPI = window.UpahAPI || defaultClient;
 }
