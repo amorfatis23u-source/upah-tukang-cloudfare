@@ -115,7 +115,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
   <script type="module">
-    import { API, utils, showToast, formatError } from '/assets/js/config.js';
+    import { utils, showToast, formatError, ensureApiClient } from '/assets/js/upah-core.js';
+
+    const api = ensureApiClient();
 
     const YEAR = new Date().getFullYear();
     document.getElementById('year').textContent = YEAR;
@@ -158,7 +160,7 @@
       let safety = 0;
       try {
         do {
-          const res = await API.list('ut:snap:', cursor, 100);
+          const res = await api.list('ut:snap:', cursor, 100);
           state.rawKeys.push(...(res.keys || []));
           cursor = res.cursor || '';
           safety += 1;
@@ -200,7 +202,7 @@
       if (needFetch.length) {
         for (const item of needFetch) {
           try {
-            const res = await API.get(item.key);
+            const res = await api.loadData(item.key);
             const rows = res?.value?.rows || [];
             item.total = utils.sumRows(rows);
             item.totalDays = utils.sumDays(rows);
@@ -344,7 +346,7 @@
         const key = event.target.getAttribute('data-key');
         if (!window.confirm('Hapus snapshot ini?')) return;
         try {
-          await API.del(key);
+          await api.deleteData(key);
           showToast('Snapshot dihapus', 'success');
           state.rawKeys = state.rawKeys.filter((entry) => entry.name !== key);
           state.all = state.all.filter((entry) => entry.key !== key);

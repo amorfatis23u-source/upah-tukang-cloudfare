@@ -94,7 +94,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
   <script type="module">
-    import { API, utils, showToast, formatError } from '/assets/js/config.js';
+    import { utils, showToast, formatError, ensureApiClient } from '/assets/js/upah-core.js';
+
+    const api = ensureApiClient();
 
     const YEAR = new Date().getFullYear();
     document.getElementById('year').textContent = YEAR;
@@ -155,7 +157,7 @@
         skeleton.classList.remove('hidden');
         emptyState.classList.add('hidden');
         listInfo.textContent = 'Memuat data...';
-        const { keys = [], cursor, list_complete } = await API.list('ut:snap:', state.cursor, 15);
+        const { keys = [], cursor, list_complete } = await api.list('ut:snap:', state.cursor, 15);
         skeleton.classList.add('hidden');
         if (!keys.length && !state.cursor && !cursor) {
           emptyState.classList.remove('hidden');
@@ -199,7 +201,7 @@
         const confirmed = window.confirm('Hapus snapshot ini? Data tidak dapat dikembalikan.');
         if (!confirmed) return;
         try {
-          await API.del(key);
+          await api.deleteData(key);
           showToast('Snapshot dihapus', 'success');
           loadList();
         } catch (err) {
