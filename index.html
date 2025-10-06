@@ -20,7 +20,7 @@
       <nav class="flex items-center gap-2 text-sm">
         <a class="rounded-xl border border-slate-200 px-3 py-2 text-slate-600 hover:border-slate-300" href="/rekap.html">Rekap</a>
         <a class="rounded-xl border border-slate-200 px-3 py-2 text-slate-600 hover:border-slate-300" href="/form.html">Isi Form</a>
-        <button id="btnNew" class="rounded-xl bg-orange-500 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
+        <button id="btnNew" data-testid="dashboard-open-new" class="rounded-xl bg-orange-500 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
       </nav>
     </div>
   </header>
@@ -31,7 +31,7 @@
         <h2 class="text-base font-semibold text-slate-900">Mulai Form Baru</h2>
         <p class="mt-2 text-sm text-slate-500">Siapkan draft kosong dengan periode 7 hari ke depan. Data tersimpan otomatis di Cloudflare KV.</p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <button id="ctaNew" class="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
+          <button id="ctaNew" data-testid="dashboard-cta-new" class="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
           <a href="/form.html" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300">Lanjutkan Draft</a>
         </div>
       </article>
@@ -98,6 +98,8 @@
 
     const api = ensureApiClient();
 
+    const NEW_COUNTER_KEY = 'upahTukang:newCounter';
+
     const YEAR = new Date().getFullYear();
     document.getElementById('year').textContent = YEAR;
 
@@ -132,6 +134,7 @@
         const info = buildKeyInfo(name, metadata || {});
         const tr = document.createElement('tr');
         tr.className = 'transition hover:bg-slate-50';
+        tr.dataset.testid = 'snapshot-row';
         tr.innerHTML = `
           <td class="py-3 pr-4 align-top">
             <div class="font-medium text-slate-800">${info.periode}</div>
@@ -143,7 +146,7 @@
           <td class="py-3 pl-4 text-right">
             <div class="flex justify-end gap-2">
               <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="/form.html?key=${encodeURIComponent(name)}">Buka</a>
-              <button class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-key="${name}">Hapus</button>
+              <button class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-testid="dashboard-delete" data-key="${name}">Hapus</button>
             </div>
           </td>
         `;
@@ -173,7 +176,7 @@
 
       try {
         state.loading = true;
-        const payload = cached || await api.list('ut:snap:', cursor, 15);
+        const payload = cached || await api.listSnapshots('ut:snap:', cursor, 15);
         if (!cached) {
           state.cache.set(cursor, payload);
         }
@@ -243,7 +246,7 @@
         const confirmed = window.confirm('Hapus snapshot ini? Data tidak dapat dikembalikan.');
         if (!confirmed) return;
         try {
-          await api.deleteData(key);
+          await api.deleteKey(key);
           showToast('Snapshot dihapus', 'success');
           resetPagination();
           await showPage('');
@@ -253,14 +256,22 @@
       }
     });
 
+    function nextNewIndex() {
+      try {
+        const current = Number(window.localStorage.getItem(NEW_COUNTER_KEY) || '0');
+        const next = Number.isFinite(current) ? current + 1 : 1;
+        window.localStorage.setItem(NEW_COUNTER_KEY, String(next));
+        return next;
+      } catch (err) {
+        console.warn('gagal membaca counter new form', err);
+        return Math.floor(Date.now() / 1000);
+      }
+    }
+
     function openNewForm() {
-      const start = utils.todayISO();
-      const end = utils.plusDaysISO(start, 6);
-      const id = utils.uuid();
+      const index = nextNewIndex();
       const url = new URL('/form.html', window.location.origin);
-      url.searchParams.set('new', id);
-      url.searchParams.set('start', start);
-      url.searchParams.set('end', end);
+      url.searchParams.set('new', String(index));
       window.location.href = url.toString();
     }
 
