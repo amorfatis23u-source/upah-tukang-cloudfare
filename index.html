@@ -3,216 +3,118 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upah Tukang — Server Sync</title>
-  <link rel="stylesheet" href="styles/system.css">
-  <style>
-    header.page-hero {
-      padding: var(--space-xl) 0 var(--space-lg);
-    }
-
-    .hero-content {
-      display: grid;
-      gap: var(--space-lg);
-    }
-
-    .eyebrow {
-      font-size: 0.75rem;
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      color: rgba(148, 163, 184, 0.65);
-      font-weight: 600;
-    }
-
-    .hero-title {
-      margin: 0;
-      font-size: clamp(2rem, 5vw, 3.25rem);
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
-    .hero-lead {
-      color: var(--text-secondary);
-      font-size: 1.05rem;
-      max-width: 56ch;
-    }
-
-    .hero-lead strong {
-      color: var(--text-primary);
-    }
-
-    .cta-section {
-      padding: 0 0 var(--space-xl);
-    }
-
-    .cta-grid {
-      display: grid;
-      gap: var(--space-lg);
-    }
-
-    .cta-card {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-md);
-      padding: clamp(1.5rem, 4vw, 2rem);
-      background: linear-gradient(180deg, rgba(17, 24, 39, 0.9) 0%, rgba(11, 18, 32, 0.95) 100%);
-      border-radius: var(--radius-lg);
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      box-shadow: var(--shadow-lg);
-      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-      position: relative;
-      overflow: hidden;
-      isolation: isolate;
-      cursor: pointer;
-      text-align: left;
-      color: inherit;
-      appearance: none;
-    }
-
-    .cta-card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(140% 120% at 100% 0%, rgba(249, 115, 22, 0.22), transparent 55%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: -1;
-    }
-
-    .cta-card:hover {
-      transform: translateY(-6px);
-      border-color: rgba(249, 115, 22, 0.4);
-      box-shadow: 0 28px 60px rgba(8, 15, 29, 0.6);
-    }
-
-    .cta-card:hover::after {
-      opacity: 1;
-    }
-
-    .cta-icon {
-      width: 3.5rem;
-      height: 3.5rem;
-      border-radius: 1rem;
-      background: rgba(249, 115, 22, 0.18);
-      display: grid;
-      place-items: center;
-      color: var(--accent);
-      transition: background 0.3s ease;
-    }
-
-    .cta-card:hover .cta-icon {
-      background: rgba(249, 115, 22, 0.28);
-    }
-
-    .cta-card h2 {
-      margin: 0;
-      font-size: 1.45rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-
-    .cta-card p {
-      color: var(--text-secondary);
-      font-size: 1rem;
-    }
-
-    .cta-card .cta-action {
-      margin-top: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    .cta-card .cta-action svg {
-      width: 1.15rem;
-      height: 1.15rem;
-    }
-
-    @media (min-width: 720px) {
-      .hero-content {
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-        align-items: center;
-      }
-
-      .cta-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-  </style>
+  <title>Upah Tukang — Beranda</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/extra.css">
 </head>
-<body>
-  <header class="page-hero">
-    <div class="container hero-content">
-      <div class="hero-copy">
-        <p class="eyebrow">Upah Tukang</p>
-        <h1 class="hero-title">Catat, sinkronkan, dan rekap upah tukang dalam satu alur.</h1>
-        <p class="hero-lead">Mulai dari <strong>input harian</strong> hingga <strong>laporan pembayaran</strong> periode, data Anda tersimpan aman di Cloudflare KV, bisa diakses ulang kapan pun, bahkan saat offline.</p>
-      </div>
-      <div class="hero-steps">
-        <ol class="flow-steps" aria-label="Alur kerja aplikasi Upah Tukang">
-          <li>Input upah tenaga, uang beras, dan catatan harian langsung dari lapangan.</li>
-          <li>Sistem menyimpan data di perangkat dan menyinkronkannya begitu koneksi tersedia.</li>
-          <li>Gunakan rekap periode untuk mengontrol pembayaran dan bagikan hasilnya ke tim.</li>
-        </ol>
-      </div>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl font-semibold">Upah Tukang</h1>
+      <nav class="flex gap-2">
+        <a href="/rekap.html" class="px-3 py-2 rounded-xl border">Rekap</a>
+        <button id="btnNew" class="px-3 py-2 rounded-xl text-white bg-orange-500 hover:bg-orange-600">Form Baru</button>
+      </nav>
     </div>
   </header>
-  <main>
-    <section class="cta-section" aria-label="Navigasi utama">
-      <div class="container cta-grid">
-        <button type="button" class="cta-card" data-action="open-new-form" aria-label="Buka form baru untuk input upah harian di tab ini">
-          <span class="cta-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="6" y="10" width="36" height="28" rx="6" stroke="currentColor" stroke-width="2.5"/>
-              <path d="M16 6h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M24 18v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M18 24h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <h2>Input Upah</h2>
-          <p>Catat pekerja, jam kerja, dan uang beras per hari. Data tersimpan otomatis dan bisa disinkronkan saat koneksi kembali stabil.</p>
-          <span class="cta-action">
-            Mulai input
-            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </button>
-        <a class="cta-card" href="rekap.html" aria-label="Buka halaman Rekap periode pembayaran">
-          <span class="cta-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 14c0-2.21 1.79-4 4-4h24c2.21 0 4 1.79 4 4v20c0 2.21-1.79 4-4 4H12c-2.21 0-4-1.79-4-4V14z" stroke="currentColor" stroke-width="2.5"/>
-              <path d="M16 18h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M16 24h10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M16 30h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M30 30h2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <h2>Rekap</h2>
-          <p>Susun total pembayaran per periode, bandingkan antar tukang, dan ekspor hasilnya untuk dokumentasi proyek.</p>
-          <span class="cta-action">
-            Lihat rekap
-            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-        </a>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <section class="bg-white rounded-2xl shadow-sm p-4">
+      <h2 class="text-lg font-semibold mb-3">Terakhir Disimpan</h2>
+      <div id="listWrap" class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-left text-slate-500">
+            <tr>
+              <th class="py-2 pr-4">Periode</th>
+              <th class="py-2 pr-4">Rumah</th>
+              <th class="py-2 pr-4">Updated</th>
+              <th class="py-2 pr-4">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="listBody"></tbody>
+        </table>
+        <div class="flex items-center gap-2 mt-3">
+          <button id="prev" class="px-3 py-1 rounded border">Prev</button>
+          <button id="next" class="px-3 py-1 rounded border">Next</button>
+          <span id="cursorInfo" class="text-xs text-slate-500"></span>
+        </div>
       </div>
     </section>
   </main>
+
+  <div id="toast" class="toast bg-slate-900 text-white px-3 py-2 rounded-xl"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module">
-    import { openNewFormAutoClose } from "./assets/js/nav.js";
+    import { API, utils } from '/assets/js/config.js';
 
-    const newFormButton = document.querySelector('[data-action="open-new-form"]');
+    const toast = (msg)=>{
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.classList.add('show');
+      setTimeout(()=>el.classList.remove('show'), 2000);
+    };
 
-    if (newFormButton) {
-      newFormButton.addEventListener("click", () => {
-        openNewFormAutoClose();
+    // "Form Baru" → form.html?new={uuid}&start=today&sampai=+6
+    document.getElementById('btnNew').addEventListener('click', ()=>{
+      const start = utils.todayISO();
+      const end = utils.plusDaysISO(start, 6);
+      const id = utils.uuid();
+      const u = new URL('/form.html', location.origin);
+      u.searchParams.set('new', id);
+      u.searchParams.set('start', start);
+      u.searchParams.set('end', end);
+      location.href = u.toString();
+    });
+
+    let cursor = '';
+    async function loadList(){
+      const { ok, keys, cursor: c, list_complete } = await API.list('ut:snap:', cursor);
+      const body = document.getElementById('listBody');
+      body.innerHTML = '';
+      (keys||[]).slice(0,10).forEach(k=>{
+        // Expect name like ut:snap:YYYY-MM-DD:YYYY-MM-DD:rumah:uuid
+        const parts = (k.name||'').split(':');
+        const periode = parts[2] && parts[3] ? `${parts[2]} → ${parts[3]}` : '—';
+        const rumah = parts[4] || '—';
+        const updated = (k.metadata && k.metadata.updatedAt) ? new Date(k.metadata.updatedAt).toLocaleString() : '—';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2 pr-4">${periode}</td>
+          <td class="py-2 pr-4">${rumah}</td>
+          <td class="py-2 pr-4">${updated}</td>
+          <td class="py-2 pr-4">
+            <a class="px-2 py-1 rounded border" href="/form.html?key=${encodeURIComponent(k.name)}">Buka</a>
+            <button data-key="${k.name}" class="btnDel px-2 py-1 rounded border border-red-300 text-red-600">Hapus</button>
+          </td>
+        `;
+        body.appendChild(tr);
       });
+      document.getElementById('cursorInfo').textContent = list_complete ? 'last page' : (c ? `cursor: ${c.slice(0,8)}...` : '');
+      // Save next cursor
+      window._nextCursor = c || '';
     }
+
+    document.getElementById('prev').addEventListener('click', ()=>{
+      toast('Cursor backward tidak disimpan (demo).');
+    });
+    document.getElementById('next').addEventListener('click', ()=>{
+      cursor = window._nextCursor || '';
+      loadList();
+    });
+
+    document.addEventListener('click', async (e)=>{
+      if(e.target.matches('.btnDel')){
+        const key = e.target.getAttribute('data-key');
+        if(confirm('Hapus data ini?')){
+          await API.del(key);
+          toast('Dihapus');
+          loadList();
+        }
+      }
+    });
+
+    loadList().catch(err=>toast(err.message));
   </script>
 </body>
 </html>
