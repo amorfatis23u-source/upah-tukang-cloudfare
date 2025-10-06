@@ -5,148 +5,415 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Upah Tukang — Rekap</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/extra.css">
 </head>
 <body class="bg-slate-50 text-slate-800">
-  <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="/index.html" class="text-sm text-slate-600">&larr; Beranda</a>
-      <h1 class="text-lg font-semibold">Rekap</h1>
-      <div class="flex gap-2">
-        <input id="qRumah" placeholder="Cari rumah..." class="border rounded-xl px-3 py-2 text-sm">
-        <button id="btnExport" class="px-3 py-2 rounded-xl border">Export</button>
+  <header class="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div class="flex items-center gap-3">
+        <a href="/index.html" class="rounded-xl border border-transparent px-3 py-2 text-sm text-slate-500 transition hover:border-slate-200 hover:text-slate-700">&larr; Beranda</a>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400">Upah Tukang</p>
+          <h1 class="text-lg font-semibold">Rekap Snapshot</h1>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        <button id="btnExportXLSX" class="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-600 hover:border-slate-300">Export XLSX</button>
+        <button id="btnExportCSV" class="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-600 hover:border-slate-300">Export CSV</button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div class="bg-white rounded-2xl shadow-sm p-4">
-        <div class="text-xs text-slate-500">Rekap Total</div>
-        <div class="text-2xl font-semibold" id="sumTotal">Rp0</div>
+  <main class="mx-auto max-w-6xl space-y-8 px-4 py-6">
+    <section class="rounded-2xl bg-white p-6 shadow-sm">
+      <div class="grid gap-4 lg:grid-cols-4">
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Periode Mulai
+          <input id="filterStart" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Periode Selesai
+          <input id="filterEnd" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Rumah
+          <input id="filterRumah" type="text" placeholder="BlokA" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Pencarian Bebas
+          <input id="filterSearch" type="search" placeholder="kata kunci" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
       </div>
-      <div class="bg-white rounded-2xl shadow-sm p-4">
-        <div class="text-xs text-slate-500">Jumlah Snapshot</div>
-        <div class="text-2xl font-semibold" id="sumCount">0</div>
+      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <span id="totalInfo">Memuat...</span>
+        <span class="text-slate-300">•</span>
+        <button id="btnReset" class="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:border-slate-300">Reset Filter</button>
       </div>
     </section>
 
-    <section class="bg-white rounded-2xl shadow-sm p-4">
-      <div class="overflow-x-auto">
+    <section class="grid gap-4 md:grid-cols-2">
+      <article class="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 class="text-base font-semibold text-slate-900">Total per Rumah</h2>
+        <p class="text-xs text-slate-500">Akumulasi total upah per rumah berdasarkan filter saat ini.</p>
+        <ul id="summaryRumah" class="mt-3 space-y-2 text-sm text-slate-700"></ul>
+      </article>
+      <article class="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 class="text-base font-semibold text-slate-900">Total per Hari</h2>
+        <p class="text-xs text-slate-500">Akumulasi total upah berdasarkan tanggal mulai (periode).</p>
+        <ul id="summaryHari" class="mt-3 space-y-2 text-sm text-slate-700"></ul>
+      </article>
+    </section>
+
+    <section class="rounded-2xl bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">Daftar Snapshot</h2>
+          <p class="text-xs text-slate-500">Klik tautan untuk membuka form sumber.</p>
+        </div>
+        <div class="text-xs text-slate-500" id="pageInfo">Halaman 1</div>
+      </div>
+      <div id="tableSkeleton" class="mt-4 space-y-2">
+        <div class="h-12 w-full skeleton"></div>
+        <div class="h-12 w-full skeleton"></div>
+        <div class="h-12 w-full skeleton"></div>
+      </div>
+      <div id="emptyState" class="mt-4 hidden rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">Tidak ada data sesuai filter.</div>
+      <div id="tableWrap" class="table-scroll hidden">
         <table class="min-w-full text-sm">
           <thead class="text-left text-slate-500">
             <tr>
-              <th class="py-2 pr-3">Periode</th>
-              <th class="py-2 pr-3">Rumah</th>
-              <th class="py-2 pr-3">Total (calc)</th>
-              <th class="py-2 pr-3">Updated</th>
-              <th class="py-2 pr-3">Aksi</th>
+              <th class="py-2 pr-4 font-medium">Periode</th>
+              <th class="py-2 pr-4 font-medium">Rumah</th>
+              <th class="py-2 pr-4 font-medium text-right">Total Upah</th>
+              <th class="py-2 pr-4 font-medium text-right">Total Hari</th>
+              <th class="py-2 pr-4 font-medium">Terakhir Disimpan</th>
+              <th class="py-2 pl-4 font-medium text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
-      <div class="flex items-center gap-2 mt-3">
-        <button id="prev" class="px-3 py-1 rounded border">Prev</button>
-        <button id="next" class="px-3 py-1 rounded border">Next</button>
-        <span id="cursorInfo" class="text-xs text-slate-500"></span>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div class="flex items-center gap-2">
+          <button id="btnPrev" class="rounded-xl border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40">Sebelumnya</button>
+          <button id="btnNext" class="rounded-xl border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40">Berikutnya</button>
+        </div>
+        <span id="cursorInfo" class="text-xs text-slate-400"></span>
       </div>
     </section>
   </main>
 
-  <div id="toast" class="toast bg-slate-900 text-white px-3 py-2 rounded-xl"></div>
+  <footer class="border-t bg-white/80 py-4">
+    <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+      <span>&copy; <span id="year"></span> Upah Tukang</span>
+      <span>Gunakan tombol hapus dengan hati-hati</span>
+    </div>
+  </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
   <script type="module">
-    import { API, utils } from '/assets/js/config.js';
-    const $ = (s)=>document.querySelector(s);
-    const toast = (m)=>{ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
+    import { API, utils, showToast, formatError } from '/assets/js/config.js';
 
-    let cursor = '';
-    let cache = []; // flat rows for export
+    const YEAR = new Date().getFullYear();
+    document.getElementById('year').textContent = YEAR;
 
-    function rowTotal(v){
-      if(!v || !Array.isArray(v.rows)) return 0;
-      return v.rows.reduce((s,r)=>s + (+r.tarif||0)*(+r.hari||0), 0);
+    const state = {
+      all: [],
+      filtered: [],
+      page: 1,
+      perPage: 20,
+      loading: false,
+      lastCursor: null,
+      cursorStack: [],
+      rawKeys: []
+    };
+
+    const tableBody = document.getElementById('tableBody');
+    const tableWrap = document.getElementById('tableWrap');
+    const tableSkeleton = document.getElementById('tableSkeleton');
+    const emptyState = document.getElementById('emptyState');
+    const totalInfo = document.getElementById('totalInfo');
+    const pageInfo = document.getElementById('pageInfo');
+    const cursorInfo = document.getElementById('cursorInfo');
+
+    const filterControls = {
+      start: document.getElementById('filterStart'),
+      end: document.getElementById('filterEnd'),
+      rumah: document.getElementById('filterRumah'),
+      search: document.getElementById('filterSearch')
+    };
+
+    async function fetchAll() {
+      if (state.loading) return;
+      state.loading = true;
+      state.rawKeys = [];
+      tableSkeleton.classList.remove('hidden');
+      tableWrap.classList.add('hidden');
+      emptyState.classList.add('hidden');
+      totalInfo.textContent = 'Memuat data...';
+      let cursor = '';
+      let safety = 0;
+      try {
+        do {
+          const res = await API.list('ut:snap:', cursor, 100);
+          state.rawKeys.push(...(res.keys || []));
+          cursor = res.cursor || '';
+          safety += 1;
+          if (res.list_complete || !cursor || safety > 20) break;
+        } while (true);
+        await enrichRecords();
+        applyFilter();
+        showToast('Data rekap diperbarui', 'success');
+      } catch (err) {
+        showToast(formatError(err), 'error');
+        tableSkeleton.classList.add('hidden');
+      } finally {
+        state.loading = false;
+      }
     }
 
-    async function loadPage(){
-      const { ok, keys, cursor: c, list_complete } = await API.list('ut:snap:', cursor);
-      $('#tbody').innerHTML = '';
-      cache = [];
-      for(const k of (keys||[])){
-        // optional client-side filter by rumah
-        const rumahQ = $('#qRumah').value.trim().toLowerCase();
-        const periode = (()=>{
-          const parts = (k.name||'').split(':');
-          return parts[2] && parts[3] ? `${parts[2]}→${parts[3]}` : '—';
-        })();
-        const rumah = (()=>{
-          const parts = (k.name||'').split(':');
-          return parts[4] || '';
-        })();
-        if(rumahQ && !String(rumah).toLowerCase().includes(rumahQ)) continue;
+    async function enrichRecords() {
+      const records = [];
+      const needFetch = [];
+      state.rawKeys.forEach((entry) => {
+        const { name, metadata = {} } = entry;
+        const parsed = utils.parseSnapshotKey(name);
+        const record = {
+          key: name,
+          start: metadata.start || parsed.start || '',
+          end: metadata.end || parsed.end || '',
+          rumah: metadata.rumah || parsed.rumah || '',
+          updatedAt: metadata.updatedAt || '',
+          total: metadata.total ?? metadata.totalUpah ?? null,
+          totalDays: metadata.totalDays ?? null,
+          meta: metadata
+        };
+        if (record.total == null || record.totalDays == null) {
+          needFetch.push(record);
+        }
+        records.push(record);
+      });
 
-        // Load detail to calc totals
-        let total = 0, value = null;
-        try {
-          const res = await API.get(k.name);
-          value = res.value || null;
-          total = rowTotal(value);
-        } catch(e){ total = 0; }
+      if (needFetch.length) {
+        for (const item of needFetch) {
+          try {
+            const res = await API.get(item.key);
+            const rows = res?.value?.rows || [];
+            item.total = utils.sumRows(rows);
+            item.totalDays = utils.sumDays(rows);
+            item.start = res?.value?.start || item.start;
+            item.end = res?.value?.end || item.end;
+            item.rumah = res?.value?.rumah || item.rumah;
+            item.updatedAt = res?.meta?.updatedAt || item.updatedAt;
+          } catch (err) {
+            console.error('gagal load detail', item.key, err);
+            item.total = item.total ?? 0;
+            item.totalDays = item.totalDays ?? 0;
+          }
+        }
+      }
+      state.all = records.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || 0).getTime();
+        return dateB - dateA;
+      });
+    }
 
-        const updated = (k.metadata && k.metadata.updatedAt) ? new Date(k.metadata.updatedAt).toLocaleString() : '—';
+    function applyFilter() {
+      const startVal = filterControls.start.value;
+      const endVal = filterControls.end.value;
+      const rumahVal = filterControls.rumah.value.trim().toLowerCase();
+      const searchVal = filterControls.search.value.trim().toLowerCase();
+
+      state.filtered = state.all.filter((item) => {
+        if (startVal && (!item.start || item.start < startVal)) return false;
+        if (endVal && (!item.end || item.end > endVal)) return false;
+        if (rumahVal && !String(item.rumah || '').toLowerCase().includes(rumahVal)) return false;
+        if (searchVal) {
+          const haystack = [item.key, item.rumah, item.start, item.end].join(' ').toLowerCase();
+          if (!haystack.includes(searchVal)) return false;
+        }
+        return true;
+      });
+      state.page = 1;
+      render();
+    }
+
+    function paginate() {
+      const startIndex = (state.page - 1) * state.perPage;
+      return state.filtered.slice(startIndex, startIndex + state.perPage);
+    }
+
+    function render() {
+      const rows = paginate();
+      tableBody.innerHTML = '';
+      if (!state.filtered.length) {
+        tableSkeleton.classList.add('hidden');
+        tableWrap.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        totalInfo.textContent = '0 snapshot';
+        pageInfo.textContent = 'Halaman 0';
+        cursorInfo.textContent = '';
+        renderSummaries([]);
+        return;
+      }
+      tableSkeleton.classList.add('hidden');
+      tableWrap.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+
+      rows.forEach((item) => {
+        const periode = item.start && item.end ? `${item.start} – ${item.end}` : '—';
+        const updated = item.updatedAt ? new Date(item.updatedAt).toLocaleString('id-ID') : '—';
         const tr = document.createElement('tr');
+        tr.className = 'transition hover:bg-slate-50';
         tr.innerHTML = `
-          <td class="py-2 pr-3">${periode}</td>
-          <td class="py-2 pr-3">${rumah||'—'}</td>
-          <td class="py-2 pr-3 text-right">${utils.rupiah(total)}</td>
-          <td class="py-2 pr-3">${updated}</td>
-          <td class="py-2 pr-3">
-            <a class="px-2 py-1 rounded border" href="/form.html?key=${encodeURIComponent(k.name)}">Buka</a>
-            <button data-key="${k.name}" class="btnDel px-2 py-1 rounded border border-red-300 text-red-600">Hapus</button>
+          <td class="py-3 pr-4 align-top">
+            <div class="font-medium text-slate-800">${periode}</div>
+            <div class="text-xs text-slate-400">${item.key}</div>
+          </td>
+          <td class="py-3 pr-4 align-top text-slate-700">${item.rumah || '—'}</td>
+          <td class="py-3 pr-4 align-top text-right font-medium text-slate-800">${utils.formatRupiah(item.total || 0)}</td>
+          <td class="py-3 pr-4 align-top text-right text-slate-600">${utils.formatNumber(item.totalDays || 0)}</td>
+          <td class="py-3 pr-4 align-top text-slate-600">${updated}</td>
+          <td class="py-3 pl-4 text-right">
+            <div class="flex justify-end gap-2">
+              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="/form.html?key=${encodeURIComponent(item.key)}">Buka</a>
+              <button class="btnDelete rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-key="${item.key}">Hapus</button>
+            </div>
           </td>
         `;
-        $('#tbody').appendChild(tr);
+        tableBody.appendChild(tr);
+      });
 
-        // push to export cache
-        cache.push({
-          Key: k.name,
-          Periode: periode.replace('→','->'),
-          Rumah: rumah,
-          Total: total,
-          UpdatedAt: (k.metadata && k.metadata.updatedAt) || ''
-        });
-      }
-
-      // summary
-      const sum = cache.reduce((s,r)=>s + (+r.Total||0), 0);
-      $('#sumTotal').textContent = utils.rupiah(sum);
-      $('#sumCount').textContent = String(cache.length);
-      $('#cursorInfo').textContent = list_complete ? 'last page' : (c ? `cursor: ${c.slice(0,8)}...` : '');
-      window._nextC = c || '';
+      const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
+      pageInfo.textContent = `Halaman ${state.page} dari ${totalPages}`;
+      totalInfo.textContent = `${state.filtered.length} snapshot`;
+      document.getElementById('btnPrev').disabled = state.page <= 1;
+      document.getElementById('btnNext').disabled = state.page >= totalPages;
+      cursorInfo.textContent = `${rows.length} baris ditampilkan`;
+      renderSummaries(state.filtered);
     }
 
-    document.getElementById('prev').addEventListener('click', ()=>toast('Cursor backward tidak disimpan (demo).'));
-    document.getElementById('next').addEventListener('click', ()=>{ cursor = window._nextC || ''; loadPage(); });
-    document.getElementById('btnExport').addEventListener('click', ()=>{
-      if(!cache.length){ toast('Tidak ada data.'); return; }
-      utils.toXLSX('rekap_upah.xlsx', { 'Rekap': cache });
-    });
-    document.getElementById('qRumah').addEventListener('input', ()=>loadPage());
+    function renderSummaries(records) {
+      const byRumah = new Map();
+      const byHari = new Map();
+      records.forEach((item) => {
+        const rumahKey = item.rumah || 'Tanpa label';
+        byRumah.set(rumahKey, (byRumah.get(rumahKey) || 0) + (item.total || 0));
+        const hariKey = item.start || 'Tanpa tanggal';
+        byHari.set(hariKey, (byHari.get(hariKey) || 0) + (item.total || 0));
+      });
 
-    document.addEventListener('click', async (e)=>{
-      if(e.target.matches('.btnDel')){
-        const key = e.target.getAttribute('data-key');
-        if(confirm('Hapus data ini?')){
+      const rumahList = Array.from(byRumah.entries()).sort((a, b) => b[1] - a[1]).map(([rumah, total]) => `<li class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2"><span>${rumah}</span><span class="font-semibold">${utils.formatRupiah(total)}</span></li>`);
+      const hariList = Array.from(byHari.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([hari, total]) => `<li class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2"><span>${hari}</span><span class="font-semibold">${utils.formatRupiah(total)}</span></li>`);
+
+      document.getElementById('summaryRumah').innerHTML = rumahList.length ? rumahList.join('') : '<li class="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">Tidak ada data</li>';
+      document.getElementById('summaryHari').innerHTML = hariList.length ? hariList.join('') : '<li class="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">Tidak ada data</li>';
+    }
+
+    document.getElementById('btnPrev').addEventListener('click', () => {
+      if (state.page <= 1) return;
+      state.page -= 1;
+      render();
+    });
+
+    document.getElementById('btnNext').addEventListener('click', () => {
+      const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
+      if (state.page >= totalPages) return;
+      state.page += 1;
+      render();
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      filterControls.start.value = '';
+      filterControls.end.value = '';
+      filterControls.rumah.value = '';
+      filterControls.search.value = '';
+      applyFilter();
+    });
+
+    Object.values(filterControls).forEach((input) => {
+      input.addEventListener('input', utils.debounce(applyFilter, 200));
+    });
+
+    document.addEventListener('click', async (event) => {
+      if (event.target.matches('.btnDelete')) {
+        const key = event.target.getAttribute('data-key');
+        if (!window.confirm('Hapus snapshot ini?')) return;
+        try {
           await API.del(key);
-          toast('Dihapus');
-          loadPage();
+          showToast('Snapshot dihapus', 'success');
+          state.rawKeys = state.rawKeys.filter((entry) => entry.name !== key);
+          state.all = state.all.filter((entry) => entry.key !== key);
+          applyFilter();
+        } catch (err) {
+          showToast(formatError(err), 'error');
         }
       }
     });
 
-    loadPage().catch(err=>toast(err.message));
+    document.getElementById('btnExportXLSX').addEventListener('click', () => {
+      if (!state.filtered.length) {
+        showToast('Tidak ada data untuk diekspor', 'warning');
+        return;
+      }
+      const rows = state.filtered.map((item, idx) => ({
+        No: idx + 1,
+        Key: item.key,
+        Periode: `${item.start} s/d ${item.end}`,
+        Rumah: item.rumah,
+        TotalUpah: item.total,
+        TotalHari: item.totalDays,
+        UpdatedAt: item.updatedAt
+      }));
+      const rumahSheet = [];
+      const rumahAcc = new Map();
+      state.filtered.forEach((item) => {
+        const key = item.rumah || 'Tanpa label';
+        rumahAcc.set(key, (rumahAcc.get(key) || 0) + (item.total || 0));
+      });
+      rumahAcc.forEach((total, rumah) => {
+        rumahSheet.push({ Rumah: rumah, TotalUpah: total });
+      });
+      const hariAcc = new Map();
+      state.filtered.forEach((item) => {
+        const key = item.start || 'Tanpa tanggal';
+        hariAcc.set(key, (hariAcc.get(key) || 0) + (item.total || 0));
+      });
+      const hariSheet = [];
+      hariAcc.forEach((total, hari) => {
+        hariSheet.push({ PeriodeMulai: hari, TotalUpah: total });
+      });
+      utils.toXLSX('rekap_upah.xlsx', {
+        Snapshot: rows,
+        'Total per Rumah': rumahSheet,
+        'Total per Hari': hariSheet
+      });
+      showToast('File XLSX dibuat', 'success');
+    });
+
+    document.getElementById('btnExportCSV').addEventListener('click', () => {
+      if (!state.filtered.length) {
+        showToast('Tidak ada data untuk diekspor', 'warning');
+        return;
+      }
+      const rows = state.filtered.map((item, idx) => ({
+        No: idx + 1,
+        Key: item.key,
+        Periode: `${item.start} s/d ${item.end}`,
+        Rumah: item.rumah,
+        TotalUpah: item.total,
+        TotalHari: item.totalDays,
+        UpdatedAt: item.updatedAt
+      }));
+      utils.toCSV('rekap_upah.csv', rows);
+      showToast('File CSV dibuat', 'success');
+    });
+
+    fetchAll();
   </script>
 </body>
 </html>
