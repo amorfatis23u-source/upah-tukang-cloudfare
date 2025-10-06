@@ -41,6 +41,7 @@
       background: var(--bg);
       color: var(--text);
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: clamp(0.9rem, 0.85rem + 0.2vw, 1rem);
       line-height: 1.5;
     }
     a { color: inherit; text-decoration: none; }
@@ -78,8 +79,9 @@
     }
     #appTitle {
       margin: 0;
-      font-size: 1.4rem;
+      font-size: clamp(1.1rem, 1rem + 0.4vw, 1.35rem);
       font-weight: 700;
+      line-height: 1.2;
     }
     .nav-links {
       display: flex;
@@ -132,7 +134,7 @@
     }
     .section-header h2 {
       margin: 0;
-      font-size: 1.05rem;
+      font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
       font-weight: 600;
     }
     .field {
@@ -175,7 +177,7 @@
       background: var(--surface);
       padding: 0.55rem 1rem;
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
     }
     .btn:hover {
@@ -305,17 +307,19 @@
       min-width: 1024px;
       border-collapse: separate;
       border-spacing: 0;
+      font-size: clamp(0.75rem, 0.72rem + 0.2vw, 0.9rem);
     }
     .table-card th,
     .table-card td {
       padding: 0.65rem 0.75rem;
       border-bottom: 1px solid rgba(148,163,184,0.22);
       vertical-align: top;
+      line-height: 1.35;
     }
     .table-card thead th {
-      font-size: 0.7rem;
+      font-size: clamp(0.6rem, 0.55rem + 0.15vw, 0.7rem);
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       color: var(--text-muted);
       background: var(--surface-muted);
       font-weight: 600;
@@ -351,7 +355,7 @@
       flex-wrap: wrap;
       align-items: center;
     }
-    .name { font-weight: 700; font-size: 1rem; }
+    .worker-card .name { font-weight: 700; font-size: 0.95rem; }
     .daygrid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -365,6 +369,7 @@
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
+      font-size: 0.9rem;
     }
     .kv { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
     .cellstack { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; }
@@ -516,8 +521,8 @@
         <h1 id="appTitle">Kalkulator Upah 7 Hari</h1>
       </div>
       <nav class="nav-links">
-        <a href="/index.html">Dasbor</a>
-        <a href="/rekap.html">Rekap</a>
+        <a href="index.html">Dasbor</a>
+        <a href="rekap.html">Rekap</a>
       </nav>
     </div>
   </header>
@@ -2050,7 +2055,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script type="module">
-  import { ensureApiClient, buildSnapshotKey, summarizeRows, showToast, formatError } from '/assets/js/upah-core.js';
+  import { ensureApiClient, buildSnapshotKey, summarizeRows, showToast, formatError } from './assets/js/upah-core.js';
 
   const api = ensureApiClient();
   const params = new URLSearchParams(window.location.search);

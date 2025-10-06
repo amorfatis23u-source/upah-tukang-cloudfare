@@ -8,13 +8,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/extra.css">
+  <link rel="stylesheet" href="assets/css/extra.css">
 </head>
 <body class="bg-slate-50 text-slate-800">
   <header class="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
     <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
       <div class="flex items-center gap-3">
-        <a href="/index.html" class="rounded-xl border border-transparent px-3 py-2 text-sm text-slate-500 transition hover:border-slate-200 hover:text-slate-700">&larr; Beranda</a>
+        <a href="index.html" class="rounded-xl border border-transparent px-3 py-2 text-sm text-slate-500 transition hover:border-slate-200 hover:text-slate-700">&larr; Beranda</a>
         <div>
           <p class="text-xs uppercase tracking-wide text-slate-400">Upah Tukang</p>
           <h1 class="text-lg font-semibold">Rekap Snapshot</h1>
@@ -115,7 +115,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
   <script type="module">
-    import { utils, showToast, formatError, ensureApiClient } from '/assets/js/upah-core.js';
+    import { utils, showToast, formatError, ensureApiClient } from './assets/js/upah-core.js';
 
     const api = ensureApiClient();
 
@@ -318,7 +318,7 @@
           <td class="py-3 pr-4 align-top text-slate-600">${updated}</td>
           <td class="py-3 pl-4 text-right">
             <div class="flex justify-end gap-2">
-              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="/form.html?key=${encodeURIComponent(item.key)}">Buka</a>
+              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="form.html?key=${encodeURIComponent(item.key)}">Buka</a>
               <button class="btnDelete rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-testid="rekap-delete" data-key="${item.key}">Hapus</button>
             </div>
           </td>
