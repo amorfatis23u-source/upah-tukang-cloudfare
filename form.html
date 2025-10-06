@@ -3,183 +3,460 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upah Tukang — Form</title>
+  <title>Upah Tukang — Form 7 Hari</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/extra.css">
 </head>
 <body class="bg-slate-50 text-slate-800">
-  <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="/index.html" class="text-sm text-slate-600">&larr; Beranda</a>
-      <h1 class="text-lg font-semibold">Form Upah 7 Hari</h1>
-      <div class="text-xs text-slate-500"><span id="saveState">Belum tersimpan</span></div>
+  <header class="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div class="flex items-center gap-3">
+        <a href="/index.html" class="rounded-xl border border-transparent px-3 py-2 text-sm text-slate-500 transition hover:border-slate-200 hover:text-slate-700">&larr; Beranda</a>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400">Upah Tukang</p>
+          <h1 class="text-lg font-semibold">Form 7 Hari</h1>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <span id="saveState" class="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">Siap</span>
+        <span id="offline" class="hidden rounded-full bg-red-100 px-3 py-1 font-medium text-red-600">Offline</span>
+      </div>
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-    <section class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">Periode (Mulai)</label>
-          <input id="start" type="date" class="w-full border rounded-xl px-3 py-2">
-        </div>
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">s/d (Otomatis +6)</label>
-          <input id="end" type="date" class="w-full border rounded-xl px-3 py-2" disabled>
-        </div>
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">Rumah</label>
-          <input id="rumah" type="text" placeholder="BlokA-01" class="w-full border rounded-xl px-3 py-2">
-        </div>
-        <div class="flex items-end gap-2">
-          <button id="btnSave" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Simpan</button>
-          <button id="btnClear" class="px-3 py-2 rounded-xl border">Kosongkan</button>
-          <button id="btnExport" class="px-3 py-2 rounded-xl border">Export</button>
+  <main class="mx-auto max-w-6xl space-y-8 px-4 py-6">
+    <section class="rounded-2xl bg-white p-6 shadow-sm">
+      <div class="grid gap-4 md:grid-cols-4">
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Periode (Mulai)</span>
+          <input id="start" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" required>
+        </label>
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">s/d (otomatis +6)</span>
+          <input id="end" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-slate-50" readonly>
+        </label>
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Rumah</span>
+          <input id="rumah" type="text" placeholder="BlokA-01" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <button id="btnSave" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500">Simpan</button>
+          <button id="btnClear" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">Kosongkan</button>
         </div>
       </div>
-      <input id="key" type="hidden">
+      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <input id="key" type="hidden">
+        <button id="btnExportXLSX" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300">Export XLSX</button>
+        <button id="btnExportCSV" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300">Export CSV</button>
+        <label for="importCsv" class="cursor-pointer rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300">Import CSV</label>
+        <input id="importCsv" type="file" accept=".csv" class="hidden">
+        <span class="text-slate-300">|</span>
+        <span id="lastSaved" class="text-xs text-slate-400">—</span>
+      </div>
     </section>
 
-    <section class="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-base font-semibold">Daftar Tukang (7 hari)</h2>
-        <button id="btnAddRow" class="px-3 py-2 rounded-xl border">Tambah Baris</button>
+    <section class="space-y-4 rounded-2xl bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">Daftar Tukang</h2>
+          <p class="text-xs text-slate-500">Isi tarif per hari dan jumlah hari kerja (maksimal 7 hari).</p>
+        </div>
+        <button id="btnAddRow" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-slate-300">Tambah Baris</button>
       </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm" id="tbl">
+      <div id="tableWrap" class="table-scroll">
+        <table class="min-w-full text-sm">
           <thead class="text-left text-slate-500">
             <tr>
-              <th class="py-2 pr-3">Nama</th>
-              <th class="py-2 pr-3">Tarif/Hari</th>
-              <th class="py-2 pr-3">Hari Kerja</th>
-              <th class="py-2 pr-3">Total</th>
-              <th class="py-2 pr-3">Aksi</th>
+              <th class="py-2 pr-3 font-medium">Nama</th>
+              <th class="py-2 pr-3 font-medium">Tarif/Hari</th>
+              <th class="py-2 pr-3 font-medium">Hari Kerja</th>
+              <th class="py-2 pr-3 font-medium text-right">Total</th>
+              <th class="py-2 pr-3 font-medium text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="tbody" class="divide-y divide-slate-100"></tbody>
         </table>
+      </div>
+      <div class="grid gap-3 md:grid-cols-3">
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs uppercase tracking-wide text-slate-400">Total Baris</p>
+          <p id="totalRows" class="text-xl font-semibold text-slate-800">0</p>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs uppercase tracking-wide text-slate-400">Total Hari Kerja</p>
+          <p id="totalDays" class="text-xl font-semibold text-slate-800">0</p>
+        </div>
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs uppercase tracking-wide text-slate-400">Total Upah</p>
+          <p id="totalAmount" class="text-xl font-semibold text-slate-800">Rp0</p>
+        </div>
       </div>
     </section>
   </main>
 
-  <div id="toast" class="toast bg-slate-900 text-white px-3 py-2 rounded-xl"></div>
+  <footer class="border-t bg-white/80 py-4">
+    <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+      <span>&copy; <span id="year"></span> Upah Tukang</span>
+      <span>Autosave aktif • Data tersimpan di <code>UPAH_KV</code></span>
+    </div>
+  </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
   <script type="module">
-    import { API, utils } from '/assets/js/config.js';
-    const $ = (s)=>document.querySelector(s);
-    const toast = (m)=>{ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
-    const setEnd = ()=> $('#end').value = utils.plusDaysISO($('#start').value, 6);
+    import { API, utils, showToast, formatError } from '/assets/js/config.js';
 
-    const rowTpl = (r,i)=>`
-      <tr data-i="${i}">
-        <td class="py-2 pr-3"><input class="nm w-full border rounded-xl px-2 py-1" value="${r.nama||''}"></td>
-        <td class="py-2 pr-3"><input class="tarif w-28 border rounded-xl px-2 py-1" type="number" min="0" value="${r.tarif||0}"></td>
-        <td class="py-2 pr-3"><input class="hari w-20 border rounded-xl px-2 py-1" type="number" min="0" max="7" value="${r.hari||0}"></td>
-        <td class="py-2 pr-3 total text-right">${utils.rupiah((+r.tarif||0)*(+r.hari||0))}</td>
-        <td class="py-2 pr-3"><button class="btnDelRow px-2 py-1 rounded border border-red-300 text-red-600">Hapus</button></td>
-      </tr>`;
+    const YEAR = new Date().getFullYear();
+    document.getElementById('year').textContent = YEAR;
 
-    const data = { rows: [] };
-    let dirty = false;
-    const markSaved = (ok)=>$('#saveState').textContent = ok ? ('Tersimpan • '+new Date().toLocaleTimeString()) : 'Menyimpan…';
+    const tbody = document.getElementById('tbody');
+    const saveState = document.getElementById('saveState');
+    const lastSaved = document.getElementById('lastSaved');
+    const offlineBadge = document.getElementById('offline');
 
-    function calcTotals(){
-      document.querySelectorAll('#tbody tr').forEach(tr=>{
-        const tarif = +tr.querySelector('.tarif').value||0;
-        const hari = +tr.querySelector('.hari').value||0;
-        tr.querySelector('.total').textContent = utils.rupiah(tarif*hari);
+    const state = {
+      key: '',
+      rows: [],
+      dirty: false,
+      saving: false,
+      loaded: false
+    };
+
+    function setOffline(isOffline) {
+      offlineBadge.classList.toggle('hidden', !isOffline);
+    }
+
+    function markSaving(pending) {
+      state.saving = pending;
+      if (pending) {
+        saveState.textContent = 'Menyimpan…';
+        saveState.className = 'rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-700';
+      } else {
+        saveState.textContent = 'Tersimpan';
+        saveState.className = 'rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700';
+      }
+    }
+
+    function markDirty() {
+      state.dirty = true;
+      state.saving = false;
+      saveState.textContent = 'Draft belum tersimpan';
+      saveState.className = 'rounded-full bg-slate-200 px-3 py-1 font-medium text-slate-700';
+    }
+
+    function ensureRows() {
+      if (!state.rows.length) {
+        state.rows.push({ nama: '', tarif: 0, hari: 0 });
+      }
+    }
+
+    function renderRows() {
+      ensureRows();
+      tbody.innerHTML = '';
+      state.rows.forEach((row, index) => {
+        const isLocked = state.rows.length === 1;
+        const btnClasses = isLocked
+          ? 'btnDelRow rounded-xl border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-400 opacity-40 cursor-not-allowed'
+          : 'btnDelRow rounded-xl border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300';
+        const tr = document.createElement('tr');
+        tr.dataset.index = index;
+        tr.className = 'transition hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="py-2 pr-3">
+            <input class="nm w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" value="${row.nama || ''}" placeholder="Nama Tukang">
+          </td>
+          <td class="py-2 pr-3">
+            <input class="tarif w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" type="number" min="0" step="1000" value="${row.tarif ?? 0}" aria-label="Tarif per hari">
+          </td>
+          <td class="py-2 pr-3">
+            <input class="hari w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" type="number" min="0" max="7" value="${row.hari ?? 0}" aria-label="Jumlah hari kerja">
+          </td>
+          <td class="py-2 pr-3 text-right font-medium text-slate-800">${utils.formatRupiah((Number(row.tarif) || 0) * (Number(row.hari) || 0))}</td>
+          <td class="py-2 pr-3 text-right">
+            <button class="${btnClasses}" ${isLocked ? 'disabled' : ''}>Hapus</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
+      refreshSummary();
     }
 
-    function rebuildTable(){
-      const tbody = $('#tbody');
-      tbody.innerHTML = data.rows.map((r,i)=>rowTpl(r,i)).join('');
-      calcTotals();
+    function refreshSummary() {
+      const totalRows = state.rows.length;
+      const totalDays = utils.sumDays(state.rows);
+      const totalAmount = utils.sumRows(state.rows);
+      document.getElementById('totalRows').textContent = utils.formatNumber(totalRows);
+      document.getElementById('totalDays').textContent = utils.formatNumber(totalDays);
+      document.getElementById('totalAmount').textContent = utils.formatRupiah(totalAmount);
     }
 
-    function restoreDefaultRow(){
-      data.rows = [
-        { nama:'', tarif:0, hari:0 }
-      ];
-      rebuildTable();
-    }
-
-    function collect(){
-      const rows = Array.from(document.querySelectorAll('#tbody tr')).map(tr=>({
+    function collectForm() {
+      const rows = Array.from(tbody.querySelectorAll('tr')).map((tr) => ({
         nama: tr.querySelector('.nm').value.trim(),
-        tarif: +tr.querySelector('.tarif').value||0,
-        hari: +tr.querySelector('.hari').value||0
+        tarif: Math.max(0, Number(tr.querySelector('.tarif').value) || 0),
+        hari: Math.max(0, Math.min(7, Number(tr.querySelector('.hari').value) || 0))
       }));
-      const start = $('#start').value;
-      const end = $('#end').value;
-      const rumah = $('#rumah').value.trim();
+      state.rows = rows;
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      const rumah = document.getElementById('rumah').value.trim();
       return { start, end, rumah, rows };
     }
 
-    async function save(force=false){
-      const v = collect();
-      if(!v.start){ toast('Isi tanggal mulai'); return; }
-      if(!$('#key').value){
-        // buat key pertama kali
-        const uid = new URL(location.href).searchParams.get('new') || utils.uuid();
-        const rumahSeg = v.rumah ? v.rumah : '';
-        const key = `ut:snap:${v.start}:${v.end}:${rumahSeg}:${uid}`;
-        $('#key').value = key;
+    function validateForm(payload) {
+      if (!payload.start) {
+        throw new Error('Tanggal mulai wajib diisi');
       }
-      markSaved(false);
-      const meta = { updatedAt: new Date().toISOString(), start:v.start, end:v.end, rumah:v.rumah };
-      await API.set($('#key').value, v, meta);
-      markSaved(true);
-      dirty = false;
-    }
-
-    const debouncedSave = utils.debounce(()=>save(), 800);
-
-    // events
-    document.addEventListener('input', (e)=>{
-      if(e.target.matches('#start')){ setEnd(); }
-      if(e.target.closest('#tbody') || e.target.matches('#rumah') || e.target.matches('#start')){
-        dirty = true; calcTotals(); debouncedSave();
+      if (Number.isNaN(new Date(payload.start).getTime())) {
+        throw new Error('Tanggal mulai tidak valid');
       }
-    });
-    document.getElementById('btnSave').addEventListener('click', ()=>save(true));
-    document.getElementById('btnClear').addEventListener('click', ()=>{ restoreDefaultRow(); dirty=true; debouncedSave(); });
-    document.getElementById('btnAddRow').addEventListener('click', ()=>{ data.rows.push({nama:'',tarif:0,hari:0}); rebuildTable(); dirty=true; debouncedSave(); });
-    document.getElementById('btnExport').addEventListener('click', ()=>{
-      const v = collect();
-      const flat = v.rows.map((r,i)=>({ No:i+1, Nama:r.nama, Tarif:r.tarif, Hari:r.hari, Total:r.tarif*r.hari, Periode:`${v.start}→${v.end}`, Rumah:v.rumah }));
-      const sheets = { 'Upah 7 Hari': flat };
-      utils.toXLSX(`upah_${v.start}_${v.end}_${v.rumah||'NA'}.xlsx`, sheets);
-    });
-
-    // init
-    const url = new URL(location.href);
-    const key = url.searchParams.get('key');
-    const startQ = url.searchParams.get('start');
-    const endQ = url.searchParams.get('end');
-
-    $('#start').value = startQ || utils.todayISO();
-    setEnd();
-    if(endQ){ $('#end').value = endQ; }
-
-    if(key){
-      API.get(key).then(res=>{
-        if(res && res.value){
-          $('#key').value = key;
-          $('#start').value = res.value.start || $('#start').value;
-          $('#end').value = res.value.end || $('#end').value;
-          $('#rumah').value = res.value.rumah || '';
-          data.rows = Array.isArray(res.value.rows) ? res.value.rows : [];
-          if(!data.rows.length) restoreDefaultRow(); else rebuildTable();
-          markSaved(true);
-        } else {
-          restoreDefaultRow();
+      if (!payload.end || Number.isNaN(new Date(payload.end).getTime())) {
+        throw new Error('Tanggal selesai tidak valid');
+      }
+      payload.rows.forEach((row, idx) => {
+        if ((Number(row.tarif) || 0) < 0) {
+          throw new Error(`Tarif baris ${idx + 1} tidak boleh negatif`);
         }
-      }).catch(()=>restoreDefaultRow());
-    } else {
-      restoreDefaultRow();
+        if ((Number(row.hari) || 0) < 0) {
+          throw new Error(`Hari kerja baris ${idx + 1} tidak boleh negatif`);
+        }
+      });
     }
+
+    async function persist(manual = false) {
+      try {
+        const payload = collectForm();
+        validateForm(payload);
+        const total = utils.sumRows(payload.rows);
+        const totalDays = utils.sumDays(payload.rows);
+        if (!state.key) {
+          const idFromQuery = new URLSearchParams(window.location.search).get('new') || utils.uuid();
+          const rumahSegment = payload.rumah ? payload.rumah.replace(/:/g, '-').trim() : '';
+          if (payload.start && payload.end) {
+            state.key = `ut:snap:${payload.start}:${payload.end}:${rumahSegment}:${idFromQuery}`;
+          } else {
+            state.key = `ut:snap:${idFromQuery}`;
+          }
+          document.getElementById('key').value = state.key;
+        }
+        markSaving(true);
+        const meta = {
+          updatedAt: new Date().toISOString(),
+          start: payload.start,
+          end: payload.end,
+          rumah: payload.rumah,
+          total,
+          totalDays
+        };
+        await API.set(state.key, payload, meta);
+        state.dirty = false;
+        markSaving(false);
+        lastSaved.textContent = `Tersimpan ${new Date().toLocaleTimeString('id-ID')}`;
+        if (manual) {
+          showToast('Data berhasil disimpan', 'success');
+        }
+      } catch (err) {
+        if (manual) {
+          showToast(formatError(err), 'error');
+        }
+        markDirty();
+        throw err;
+      }
+    }
+
+    const debouncedSave = utils.debounce(() => {
+      if (!state.loaded) return;
+      if (!navigator.onLine) {
+        markDirty();
+        return;
+      }
+      persist(false).catch(() => {});
+    }, 800);
+
+    document.addEventListener('input', (event) => {
+      if (event.target.matches('#start')) {
+        const end = utils.plusDaysISO(event.target.value, 6);
+        document.getElementById('end').value = end;
+      }
+      if (event.target.closest('table') || event.target.matches('#start') || event.target.matches('#rumah')) {
+        markDirty();
+        refreshSummary();
+        debouncedSave();
+      }
+    });
+
+    tbody.addEventListener('click', (event) => {
+      if (event.target.matches('.btnDelRow')) {
+        event.preventDefault();
+        const tr = event.target.closest('tr');
+        const index = Number(tr.dataset.index);
+        if (state.rows.length <= 1) {
+          showToast('Minimal satu baris data', 'warning');
+          return;
+        }
+        state.rows.splice(index, 1);
+        renderRows();
+        markDirty();
+        debouncedSave();
+      }
+    });
+
+    document.getElementById('btnAddRow').addEventListener('click', () => {
+      state.rows.push({ nama: '', tarif: 0, hari: 0 });
+      renderRows();
+      markDirty();
+      debouncedSave();
+    });
+
+    document.getElementById('btnClear').addEventListener('click', () => {
+      if (!window.confirm('Kosongkan tabel? Data tersimpan tidak dihapus.')) return;
+      state.rows = [{ nama: '', tarif: 0, hari: 0 }];
+      renderRows();
+      markDirty();
+    });
+
+    document.getElementById('btnSave').addEventListener('click', async () => {
+      try {
+        await persist(true);
+      } catch (err) {
+        showToast(formatError(err), 'error');
+      }
+    });
+
+    document.getElementById('btnExportXLSX').addEventListener('click', () => {
+      try {
+        const payload = collectForm();
+        const rows = payload.rows.map((row, idx) => ({
+          No: idx + 1,
+          Nama: row.nama,
+          Tarif: row.tarif,
+          Hari: row.hari,
+          Total: (Number(row.tarif) || 0) * (Number(row.hari) || 0),
+          Periode: `${payload.start} s/d ${payload.end}`,
+          Rumah: payload.rumah
+        }));
+        const summary = [{
+          Periode: `${payload.start} s/d ${payload.end}`,
+          Rumah: payload.rumah,
+          TotalHari: utils.sumDays(payload.rows),
+          TotalUpah: utils.sumRows(payload.rows)
+        }];
+        utils.toXLSX(`upah_${payload.start || 'periode'}_${payload.rumah || 'umum'}.xlsx`, {
+          'Upah Mingguan': rows,
+          Rekap: summary
+        });
+        showToast('Berhasil membuat file XLSX', 'success');
+      } catch (err) {
+        showToast(formatError(err), 'error');
+      }
+    });
+
+    document.getElementById('btnExportCSV').addEventListener('click', () => {
+      try {
+        const payload = collectForm();
+        const rows = payload.rows.map((row, idx) => ({
+          No: idx + 1,
+          Nama: row.nama,
+          Tarif: row.tarif,
+          Hari: row.hari,
+          Total: (Number(row.tarif) || 0) * (Number(row.hari) || 0),
+          Periode: `${payload.start} s/d ${payload.end}`,
+          Rumah: payload.rumah
+        }));
+        utils.toCSV(`upah_${payload.start || 'periode'}_${payload.rumah || 'umum'}.csv`, rows);
+        showToast('Berhasil membuat file CSV', 'success');
+      } catch (err) {
+        showToast(formatError(err), 'error');
+      }
+    });
+
+    document.getElementById('importCsv').addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = String(e.target?.result || '');
+          const parsed = utils.parseCSV(text);
+          if (!parsed.rows.length) {
+            throw new Error('File CSV kosong');
+          }
+          state.rows = parsed.rows.map((row) => ({
+            nama: row.Nama || row.nama || '',
+            tarif: Number(row.Tarif ?? row.tarif ?? 0) || 0,
+            hari: Number(row.Hari ?? row.hari ?? 0) || 0
+          }));
+          renderRows();
+          markDirty();
+          debouncedSave();
+          showToast('Data CSV dimuat', 'success');
+        } catch (err) {
+          showToast(formatError(err), 'error');
+        }
+      };
+      reader.onerror = () => showToast('Gagal membaca file CSV', 'error');
+      reader.readAsText(file);
+      event.target.value = '';
+    });
+
+    window.addEventListener('online', () => {
+      setOffline(false);
+      if (state.dirty) {
+        debouncedSave();
+      }
+    });
+    window.addEventListener('offline', () => setOffline(true));
+
+    async function loadFromKey(key) {
+      try {
+        markSaving(true);
+        const res = await API.get(key);
+        if (!res || !res.value) {
+          throw new Error('Data tidak ditemukan');
+        }
+        state.key = key;
+        document.getElementById('key').value = key;
+        document.getElementById('start').value = res.value.start || utils.todayISO();
+        document.getElementById('end').value = res.value.end || utils.plusDaysISO(document.getElementById('start').value, 6);
+        document.getElementById('rumah').value = res.value.rumah || '';
+        state.rows = Array.isArray(res.value.rows) && res.value.rows.length ? res.value.rows : [{ nama: '', tarif: 0, hari: 0 }];
+        renderRows();
+        markSaving(false);
+        lastSaved.textContent = res.meta?.updatedAt ? `Terakhir ${new Date(res.meta.updatedAt).toLocaleString('id-ID')}` : '—';
+        state.loaded = true;
+        state.dirty = false;
+      } catch (err) {
+        markSaving(false);
+        showToast(formatError(err), 'error');
+        state.rows = [{ nama: '', tarif: 0, hari: 0 }];
+        renderRows();
+        state.loaded = true;
+      }
+    }
+
+    function initFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const key = params.get('key');
+      const startParam = params.get('start');
+      const endParam = params.get('end');
+      if (key) {
+        loadFromKey(key).then(() => {
+          state.loaded = true;
+        });
+        return;
+      }
+      state.key = '';
+      document.getElementById('start').value = startParam || utils.todayISO();
+      document.getElementById('end').value = endParam || utils.plusDaysISO(document.getElementById('start').value, 6);
+      state.rows = [{ nama: '', tarif: 0, hari: 0 }];
+      renderRows();
+      state.loaded = true;
+    }
+
+    initFromQuery();
+    setOffline(!navigator.onLine);
   </script>
 </body>
 </html>
