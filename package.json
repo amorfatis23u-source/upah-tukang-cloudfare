@@ -1,0 +1,9 @@
+{
+  "name": "upah-tukang-cloudflare",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "echo 'Static project for Cloudflare Pages. No dev server needed.'"
+  }
+}

@@ -1,0 +1,3136 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Kalkulator Upah — Group + Uang Beras (Mobile Friendly)</title>
+<link rel="stylesheet" href="styles/system.css">
+<link rel="stylesheet" href="styles/pages.css">
+<style>
+  :root {
+    --day-zebra: rgba(249, 115, 22, 0.12);
+  }
+
+  .page-shell {
+    padding-bottom: calc(var(--space-xl) * 3.5);
+  }
+
+  .topbar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: flex-start;
+  }
+
+  .topbar__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .logo-mark {
+    font-size: clamp(2.75rem, 8vw, 3.75rem);
+    line-height: 1;
+  }
+
+  .app-title {
+    margin: 0;
+  }
+
+  #mainActionsFixed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .actions-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: stretch;
+  }
+
+  .actions-buttons .btn {
+    min-width: max(150px, 18ch);
+  }
+
+  .actions-buttons.btn-compact .btn {
+    min-width: max(132px, 14ch);
+  }
+
+  .actions-note {
+    margin: 0;
+  }
+
+  .form-grid {
+    display: grid;
+    gap: var(--space-sm);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .form-label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .date-field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .cal-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.6rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.6);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .cal-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .cal-btn:hover {
+    background: rgba(30, 41, 59, 0.75);
+    border-color: rgba(148, 163, 184, 0.55);
+  }
+
+  .cal-btn:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .input,
+  select.input,
+  textarea.input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.95rem;
+  }
+
+  select.input {
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgba(148, 163, 184, 0.7) 50%),
+      linear-gradient(135deg, rgba(148, 163, 184, 0.7) 50%, transparent 50%);
+    background-position:
+      calc(100% - 1.5rem) calc(50% - 2px),
+      calc(100% - 1rem) calc(50% - 2px);
+    background-size: 0.65rem 0.65rem, 0.65rem 0.65rem;
+    background-repeat: no-repeat;
+  }
+
+  .input:focus-visible,
+  select.input:focus-visible,
+  textarea.input:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .input.right {
+    text-align: right;
+  }
+
+  .muted {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+  }
+
+  .btn.small,
+  .btn.btn-sm {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .btn-ghost {
+    background: rgba(15, 23, 42, 0.35);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    color: var(--text-secondary);
+  }
+
+  .btn-ghost:hover {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(148, 163, 184, 0.5);
+    color: var(--text-primary);
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--text-secondary);
+  }
+
+  .settings-row input[type='checkbox'] {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--accent);
+  }
+
+  .collapsible {
+    overflow: hidden;
+  }
+
+  .collapsible__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+  }
+
+  .collapsible__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .collapsible__summary::after {
+    content: '▸';
+    transition: transform 0.2s ease;
+  }
+
+  .collapsible[open] .collapsible__summary::after {
+    transform: rotate(90deg);
+  }
+
+  .collapsible[open] .collapsible__summary {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .collapsible__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .subcard {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .subcard__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .subcard__header h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .rate-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .allowance-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    align-items: end;
+  }
+
+  .allowance-grid .form-actions {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .allowance-grid .form-actions .btn {
+    width: 100%;
+  }
+
+  .inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .inline-actions .input {
+    flex: 1 1 220px;
+    min-width: 200px;
+  }
+
+  .inline-actions .btn {
+    flex: 0 0 auto;
+  }
+
+  #rumahList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.55);
+    font-size: 0.85rem;
+  }
+
+  .chip button {
+    background: transparent;
+    border: 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .chip button:hover {
+    color: var(--text-primary);
+  }
+
+  .chip button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 999px;
+  }
+
+  .pengaturan-actions {
+    margin-top: var(--space-md);
+  }
+
+  .pengaturan-actions .btn {
+    min-width: max(150px, 16ch);
+  }
+
+  .table-card__scroller {
+    overflow-x: auto;
+  }
+
+  #tableWrap {
+    position: relative;
+  }
+
+  #tbl {
+    width: 100%;
+    min-width: 1024px;
+    border-collapse: collapse;
+  }
+
+  #tbl thead th {
+    text-align: left;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.78);
+    background: rgba(15, 23, 42, 0.85);
+    padding: 0.85rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    backdrop-filter: blur(8px);
+  }
+
+  #tbl tbody td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    font-size: 0.95rem;
+  }
+
+  #tbl tbody tr:nth-child(odd) td {
+    background: rgba(15, 23, 42, 0.35);
+  }
+
+  #tbl tbody tr:hover td {
+    background: rgba(30, 41, 59, 0.55);
+  }
+
+  #tbl tfoot td {
+    padding: 0.9rem 1rem;
+    font-weight: 700;
+    border-top: 1px solid rgba(249, 115, 22, 0.3);
+    background: rgba(15, 23, 42, 0.65);
+  }
+
+  #tbl .center {
+    text-align: center;
+  }
+
+  #tbl .right {
+    text-align: right;
+  }
+
+  #tbl .sum {
+    letter-spacing: 0.08em;
+  }
+
+  #tbl thead th:nth-child(6),
+  #tbl tbody td:nth-child(6),
+  #tbl thead th:nth-child(8),
+  #tbl tbody td:nth-child(8),
+  #tbl thead th:nth-child(10),
+  #tbl tbody td:nth-child(10),
+  #tbl thead th:nth-child(12),
+  #tbl tbody td:nth-child(12) {
+    background: var(--day-zebra);
+  }
+
+  .cellstack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    align-items: flex-end;
+    font-size: 0.8rem;
+  }
+
+  .cellstack .cnt {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+  }
+
+  .cards-body {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  .worker-card {
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .card-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .name {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .daygrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .daygrid .item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    background: rgba(15, 23, 42, 0.38);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
+  }
+
+  .kv {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .kv .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .totals .chip {
+    margin: 0;
+  }
+
+  .fabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: var(--space-sm);
+    z-index: 50;
+  }
+
+  .fabbar__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    background: rgba(11, 18, 32, 0.92);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 18px 38px rgba(8, 15, 29, 0.55);
+    padding: var(--space-md);
+  }
+
+  .fabbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .fabbar__row .btn {
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+
+  .search-box {
+    flex: 1 1 220px;
+  }
+
+  .search-box input {
+    width: 100%;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.18);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #bbf7d0;
+    font-weight: 600;
+  }
+
+  .pill .small {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #dcfce7;
+  }
+
+  .hide-sm {
+    display: table-cell;
+  }
+
+  @media (max-width: 880px) {
+    .actions-buttons .btn {
+      min-width: 0;
+      flex: 1 1 100%;
+    }
+
+    .fabbar__row .btn {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .inline-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .inline-actions .input {
+      min-width: 0;
+    }
+
+    .hide-sm {
+      display: none !important;
+    }
+  }
+
+  .table-card__scroller::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .table-card__scroller::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 999px;
+  }
+
+  .mini-cal {
+    position: absolute;
+    z-index: 80;
+    background: var(--surface);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 18px 38px rgba(8, 15, 29, 0.55);
+    width: 280px;
+    overflow: hidden;
+  }
+
+  .mini-cal header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    font-weight: 600;
+  }
+
+  .mini-cal header .nav {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .mini-cal header .nav button,
+  .mini-cal .footer button {
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(15, 23, 42, 0.6);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+  }
+
+  .mini-cal .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.35rem;
+    padding: 0.75rem;
+  }
+
+  .mini-cal .dow {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .mini-cal .day {
+    text-align: center;
+    padding: 0.5rem 0;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .mini-cal .day:hover {
+    background: rgba(30, 41, 59, 0.6);
+  }
+
+  .mini-cal .day.today {
+    border-color: rgba(249, 115, 22, 0.5);
+  }
+
+  .mini-cal .day.out {
+    color: rgba(148, 163, 184, 0.6);
+  }
+
+  .mini-cal .footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+  }
+
+  body.hide-cg #tbl thead th:nth-child(3),
+  body.hide-cg #tbl tbody td:nth-child(3),
+  body.hide-cg #tbl tfoot td:nth-child(3),
+  body.hide-cg #tbl thead th:nth-child(4),
+  body.hide-cg #tbl tbody td:nth-child(4),
+  body.hide-cg #tbl tfoot td:nth-child(4) {
+    visibility: hidden !important;
+    width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  body.hide-cg #cardsWrap .kv.hide-cg {
+    visibility: hidden !important;
+  }
+
+  .settings-row + .hint-text {
+    margin-top: -0.25rem;
+  }
+
+  #tableWrap .sticky-header,
+  #tableWrap .sticky-footer {
+    position: sticky;
+    left: 0;
+    right: 0;
+    background: rgba(11, 18, 32, 0.96);
+    z-index: 5;
+  }
+
+  #tableWrap .sticky-header {
+    top: 0;
+    box-shadow: 0 1px 0 rgba(148, 163, 184, 0.22), 0 10px 24px rgba(8, 15, 29, 0.45);
+  }
+
+  #tableWrap .sticky-footer {
+    bottom: 0;
+    box-shadow: 0 -1px 0 rgba(148, 163, 184, 0.18), 0 -10px 24px rgba(8, 15, 29, 0.35);
+  }
+
+  #tableWrap .sticky-header table,
+  #tableWrap .sticky-footer table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  #tableWrap .sticky-header th,
+  #tableWrap .sticky-footer td {
+    padding: 0.75rem 1rem;
+    border: 0;
+  }
+
+  #tableWrap .sticky-footer td {
+    font-weight: 700;
+  }
+
+  #tbl thead.is-hidden th,
+  #tbl tfoot.is-hidden td {
+    visibility: hidden !important;
+  }
+
+  #tableWrap.padding-for-sticky {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  #tbl tbody::before,
+  #tbl tbody::after {
+    content: '';
+    display: table-row;
+    height: var(--stickyHeadH, 0px);
+  }
+
+  #tbl tbody::after {
+    height: var(--stickyFootH, 0px);
+  }
+
+  @media print {
+    body {
+      background: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    .page-shell {
+      padding: 0 !important;
+    }
+
+    .card,
+    .subcard,
+    .worker-card {
+      background: transparent !important;
+      box-shadow: none !important;
+      border: 1px solid #0000000f;
+    }
+
+    .btn,
+    .fabbar,
+    #mainActionsFixed,
+    .no-print {
+      display: none !important;
+    }
+
+    #tbl thead th,
+    #tbl tbody td,
+    #tbl tfoot td {
+      background: transparent !important;
+      color: #000000 !important;
+      border-color: #00000033 !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="page-shell container">
+    <header class="section-header topbar">
+      <div class="topbar__brand">
+        <span class="logo-mark" title="finger heart" aria-label="finger heart">🫰</span>
+        <div>
+          <h1 class="app-title">Kalkulator Upah 7 Hari</h1>
+          <p class="section-subtitle">Kelola periode kerja, hitung upah dan uang beras, serta simpan snapshot langsung ke Cloudflare.</p>
+        </div>
+      </div>
+    </header>
+    <main class="page-content">
+      <section class="card main-actions" id="mainActionsFixed">
+        <div class="form-grid period-grid" id="periodRow">
+          <div class="form-field">
+            <label class="form-label" for="periodStart">Periode Mulai</label>
+            <div class="date-field">
+              <input type="date" id="periodStart" class="input">
+              <button type="button" class="cal-btn" data-cal-for="periodStart" aria-label="Buka kalender">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2" ry="2" stroke="currentColor" />
+                  <path d="M16 3v4M8 3v4M3 9h18" stroke="currentColor" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="periodEnd">Periode Selesai</label>
+            <div class="date-field">
+              <input type="date" id="periodEnd" class="input">
+              <button type="button" class="cal-btn" data-cal-for="periodEnd" aria-label="Buka kalender">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2" ry="2" stroke="currentColor" />
+                  <path d="M16 3v4M8 3v4M3 9h18" stroke="currentColor" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="actions-buttons">
+          <button id="saveButton" class="btn btn-primary" type="button">Simpan</button>
+          <button class="btn btn-secondary" onclick="addWorker()">Tambah Pekerja</button>
+          <button class="btn btn-secondary" onclick="window.print()">Cetak</button>
+          <button class="btn btn-secondary" onclick="try{downloadCSV&&downloadCSV()}catch(_){alert('downloadCSV tidak ditemukan')}">Unduh CSV</button>
+          <button class="btn btn-secondary" onclick="try{downloadXLSX&&downloadXLSX()}catch(_){alert('downloadXLSX tidak ditemukan')}">Unduh XLSX</button>
+          <button class="btn btn-secondary" onclick="try{downloadJSON&&downloadJSON()}catch(_){alert('downloadJSON tidak ditemukan')}">Unduh JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="restoreDefaultRows()">Kosongkan</button>
+        </div>
+        <p class="actions-note muted">Menekan <strong>Simpan</strong> akan menyimpan snapshot terbaru ke Cloudflare. Jika koneksi gagal, berkas HTML cadangan otomatis diunduh agar tetap bisa dipulihkan secara lokal.</p>
+        <p id="saveStatus" class="muted" role="status" aria-live="polite"></p>
+      </section>
+
+      <details class="card collapsible" id="secOptions">
+        <summary class="collapsible__summary">
+          <span class="collapsible__title">Pengaturan</span>
+        </summary>
+        <div class="collapsible__body">
+          <div class="settings-row">
+            <input type="checkbox" id="toggleHideCG">
+            <label for="toggleHideCG">Sembunyikan kolom <strong>Kelas</strong> &amp; <strong>Group</strong> (Tabel &amp; Card)</label>
+          </div>
+
+          <section class="subcard">
+            <div class="subcard__header">
+              <h3>Tarif per Kelas (Rp/hari)</h3>
+              <button class="btn btn-ghost btn-sm" onclick="restoreDefaultRates()">Kembalikan Tarif Default</button>
+            </div>
+            <div class="form-grid rate-grid">
+              <div class="form-field">
+                <label class="form-label" for="rateSenior">Senior</label>
+                <input id="rateSenior" type="number" class="input" oninput="classRates['Senior']=Number(this.value||0); rerender();" />
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="rateTukang">Tukang</label>
+                <input id="rateTukang" type="number" class="input" oninput="classRates['Tukang']=Number(this.value||0); rerender();" />
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="rateKenek">Kenek</label>
+                <input id="rateKenek" type="number" class="input" oninput="classRates['Kenek']=Number(this.value||0); rerender();" />
+              </div>
+            </div>
+          </section>
+
+          <section class="subcard">
+            <div class="subcard__header">
+              <h3>Uang Beras</h3>
+            </div>
+            <div class="form-grid allowance-grid">
+              <div class="form-field">
+                <label class="form-label" for="thresholdInput">Ambang Uang Beras</label>
+                <input id="thresholdInput" type="number" step="1" min="0" class="input" />
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="berasInput">Nilai Uang Beras</label>
+                <input id="berasInput" type="number" step="1" min="0" class="input" />
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-secondary btn-sm" onclick="updateBerasRule()">Terapkan</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="subcard">
+            <div class="subcard__header">
+              <h3>Master Rumah</h3>
+            </div>
+            <div class="inline-actions">
+              <input id="inpRumah" class="input" placeholder="mis. A11 atau C1" />
+              <button class="btn btn-secondary btn-sm" onclick="addRumah()">Tambah</button>
+              <button class="btn btn-secondary btn-sm" onclick="clearRumah()">Kosongkan Daftar</button>
+              <button class="btn btn-secondary btn-sm" onclick="restoreDefaultRumah()">Pulihkan Default</button>
+            </div>
+            <div id="rumahList"></div>
+            <p class="muted hint-text">Di mobile, geser horisontal bila tabel melebar.</p>
+          </section>
+
+          <div class="actions-buttons pengaturan-actions btn-compact" id="pengaturan-actions-row">
+            <button class="btn btn-secondary" onclick="clearAllDays()">Kosongkan Semua Hari</button>
+            <button class="btn btn-secondary btn-sm" onclick="setView('table')">Mode Tabel</button>
+            <button class="btn btn-secondary btn-sm" onclick="setView('cards')">Mode Card</button>
+            <button class="btn btn-secondary btn-sm" onclick="addWorker()">Tambah Baris</button>
+            <button class="btn btn-secondary" onclick="resetAll()">Reset Semua</button>
+          </div>
+        </div>
+      </details>
+
+      <section id="tableWrap" class="card table-card">
+        <div class="table-card__scroller">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th class="center">No</th>
+                <th>Nama</th>
+                <th>Kelas</th>
+                <th>Group</th>
+                <th class="right hide-sm">Tarif/Nama</th>
+                <th class="center">Minggu</th>
+                <th class="center">Senin</th>
+                <th class="center">Selasa</th>
+                <th class="center">Rabu</th>
+                <th class="center">Kamis</th>
+                <th class="center">Jumat</th>
+                <th class="center">Sabtu</th>
+                <th class="right">Total Hari</th>
+                <th class="right">Upah Pokok</th>
+                <th class="right">Uang Beras</th>
+                <th class="right">Bonus</th>
+                <th class="right">Total Bayar</th>
+                <th class="hide-sm">Keterangan</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="12" class="right sum">TOTAL</td>
+                <td id="sumHari" class="right sum">0</td>
+                <td id="sumUpahPokok" class="right sum">Rp 0</td>
+                <td id="sumBeras" class="right sum">Rp 0</td>
+                <td id="sumBonus" class="right sum">Rp 0</td>
+                <td id="sumTotalBayar" class="right sum">Rp 0</td>
+                <td class="hide-sm"></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section id="cardsWrap" class="card" style="display:none;">
+        <div id="cardsBody" class="cards-body"></div>
+      </section>
+
+      <details class="card collapsible" id="rekap3">
+        <summary class="collapsible__summary">
+          <span class="collapsible__title">Rekap Total Tarif per Rumah</span>
+        </summary>
+        <div class="collapsible__body">
+          <div id="rekap3Body"></div>
+        </div>
+      </details>
+
+      <details class="card collapsible" id="rekap3day">
+        <summary class="collapsible__summary">
+          <span class="collapsible__title">Rekap per Rumah per Hari</span>
+        </summary>
+        <div class="collapsible__body">
+          <div id="rekap3DayBody"></div>
+        </div>
+      </details>
+    </main>
+  </div>
+
+  <div class="fabbar no-print">
+    <div class="card fabbar__card">
+      <div class="fabbar__row">
+        <span class="pill">Total Bayar: <span id="pillTotal" class="small">Rp 0</span></span>
+      </div>
+      <div class="fabbar__row">
+        <button class="btn btn-ghost" onclick="setView(toggleView())">Ganti Mode</button>
+        <div class="search-box">
+          <input id="searchName" class="input" type="search" placeholder="Cari nama pekerja…" autocomplete="off" />
+        </div>
+      </div>
+    </div>
+</div>
+
+<script src="assets/js/export-utils.js"></script>
+
+<script>
+  // ===== Defaults =====
+  const defaultClassRates = {"Senior":145000,"Tukang":130000,"Kenek":120000};
+  // === Updated: include half-day variants like "1/2 A1" .. "1/2 B8" while keeping old data ===
+const baseRumah = [...Array(10)].map((_,i)=>'A'+(i+1)).concat([...Array(8)].map((_,i)=>'B'+(i+1)));
+const defaultRumahList = baseRumah
+  .concat(baseRumah.map(x=>'1/2 '+x))   // add 1/2 A1..A10 & 1/2 B1..B8
+  .concat('Lain','1/2 Lain');           // keep existing extras at the end
+  const groupList = ['Alex','Toro','Muchsin'];
+  const dayKeys = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+  // Display order: Sunday first (Minggu, Senin ... Sabtu) mapped to internal indices (Mon..Sun)
+  const displayDayOrder = [6,0,1,2,3,4,5];
+  const displayDayKeys = displayDayOrder.map(i => dayKeys[i]);
+
+  const calcDayWeight = (window.UpahExport && typeof window.UpahExport.calcDayWeight === 'function')
+    ? window.UpahExport.calcDayWeight
+    : function(label){
+        if (!label) return 0;
+        const str = String(label).trim();
+        if (!str) return 0;
+        if (str === '1/2 Lain') return 0.5;
+        if (/^1\/2\b/i.test(str)) return 0.5;
+        return 1;
+      };
+
+  let apiClientInstance = null;
+  let apiClientLoader = null;
+  let apiClientLoadError = null;
+
+  function ensureApiClient(){
+    if (apiClientInstance) return Promise.resolve(apiClientInstance);
+    if (apiClientLoadError) return Promise.reject(apiClientLoadError);
+    if (!apiClientLoader){
+      apiClientLoader = import('./assets/js/config.js')
+        .then((module) => {
+          if (!module || typeof module.createApiClient !== 'function'){
+            throw new Error('Modul konfigurasi API tidak tersedia');
+          }
+          const client = module.createApiClient();
+          apiClientInstance = client;
+          return client;
+        })
+        .catch((err) => {
+          const error = err instanceof Error ? err : new Error(String(err));
+          console.error('Gagal memuat konfigurasi backend', error);
+          apiClientLoadError = error;
+          throw error;
+        });
+    }
+    return apiClientLoader;
+  }
+
+  const snapshotData = (typeof window !== 'undefined' && window.__UPAH_DATA__) ? window.__UPAH_DATA__ : null;
+  const snapshotThreshold = snapshotData && snapshotData.allowanceThreshold;
+  const snapshotAmount = snapshotData && snapshotData.allowanceAmount;
+  const snapshotClassRates = snapshotData && snapshotData.classRates && typeof snapshotData.classRates === 'object' ? snapshotData.classRates : null;
+  const snapshotRumah = snapshotData && Array.isArray(snapshotData.rumah) ? snapshotData.rumah : null;
+  const snapshotRows = snapshotData && Array.isArray(snapshotData.rows) ? snapshotData.rows : null;
+
+  const STORAGE_ROOT_KEY = 'upahTukang';
+  const AUTOSAVE_DELAY = 320;
+  const clearHooks = new Set();
+  let storageRoot = readStorageRoot();
+  let activeItem = null;
+  let autosaveTimer = null;
+  const dirtyKeys = new Set();
+
+  function readStorageRoot(){
+    const raw = localStorage.getItem(STORAGE_ROOT_KEY);
+    let parsed = null;
+    if (raw){
+      try { parsed = JSON.parse(raw); } catch(_){ parsed = null; }
+    }
+    if (!parsed || typeof parsed !== 'object') parsed = {};
+    if (!Array.isArray(parsed.items)) parsed.items = [];
+    if (typeof parsed.lastNewIndex !== 'number') parsed.lastNewIndex = 0;
+    if (typeof parsed.activeId !== 'string'){
+      parsed.activeId = parsed.items.length ? parsed.items[parsed.items.length-1].id || null : null;
+    }
+    return parsed;
+  }
+  function persistStorageRoot(){
+    try {
+      localStorage.setItem(STORAGE_ROOT_KEY, JSON.stringify(storageRoot));
+    } catch (err) {
+      console.warn('Gagal menyimpan storage upahTukang', err);
+    }
+  }
+  function makeId(){
+    if (typeof crypto !== 'undefined' && crypto.randomUUID){
+      return crypto.randomUUID();
+    }
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+  }
+  function cloneDefaultRows(){ return structuredClone(defaultRows); }
+  function cloneDefaultRates(){ return structuredClone(defaultClassRates); }
+  function cloneDefaultRumah(){ return [...defaultRumahList]; }
+  function createDefaultItem(){
+    const now = Date.now();
+    const nextIndex = (storageRoot.lastNewIndex || 0) + 1;
+    const item = {
+      id: makeId(),
+      newIndex: nextIndex,
+      periode: '',
+      sd: '',
+      rows: cloneDefaultRows(),
+      classRates: cloneDefaultRates(),
+      rumah: cloneDefaultRumah(),
+      allowanceThreshold: 3.9,
+      allowanceAmount: 20000,
+      createdAt: now,
+      updatedAt: now
+    };
+    storageRoot.lastNewIndex = Math.max(storageRoot.lastNewIndex || 0, nextIndex);
+    return item;
+  }
+  function migrateLegacyIfNeeded(){
+    if (Array.isArray(storageRoot.items) && storageRoot.items.length) return;
+    const legacyRowsRaw = localStorage.getItem('upah20_rows');
+    const legacyRatesRaw = localStorage.getItem('upah20_classRates');
+    const legacyRumahRaw = localStorage.getItem('upah20_rumah');
+    const legacyPeriodStart = localStorage.getItem('upah20_periodStart');
+    const legacyPeriodEnd = localStorage.getItem('upah20_periodEnd');
+    const legacyThreshold = localStorage.getItem('upah20_beras_threshold');
+    const legacyAmount = localStorage.getItem('upah20_beras_amount');
+    if (!legacyRowsRaw && !legacyRatesRaw && !legacyRumahRaw && !legacyPeriodStart && !legacyPeriodEnd && !legacyThreshold && !legacyAmount) return;
+    const item = createDefaultItem();
+    try {
+      const parsed = JSON.parse(legacyRowsRaw);
+      if (Array.isArray(parsed) && parsed.length) item.rows = parsed;
+    } catch(_){ }
+    try {
+      const parsed = JSON.parse(legacyRatesRaw);
+      if (parsed && typeof parsed === 'object') item.classRates = parsed;
+    } catch(_){ }
+    try {
+      const parsed = JSON.parse(legacyRumahRaw);
+      if (Array.isArray(parsed) && parsed.length) item.rumah = parsed;
+    } catch(_){ }
+    if (legacyPeriodStart) item.periode = legacyPeriodStart;
+    if (legacyPeriodEnd) item.sd = legacyPeriodEnd;
+    const thr = Number(legacyThreshold || '3.9');
+    if (Number.isFinite(thr)) item.allowanceThreshold = thr;
+    const amt = Number(legacyAmount || '20000');
+    if (Number.isFinite(amt)) item.allowanceAmount = amt;
+    storageRoot.items.push(item);
+    storageRoot.activeId = item.id;
+    persistStorageRoot();
+  }
+  function selectActiveItemById(requestedId){
+    let target = null;
+    if (requestedId){
+      target = storageRoot.items.find(it => it && it.id === requestedId) || null;
+    }
+    if (!target && typeof storageRoot.activeId === 'string'){
+      target = storageRoot.items.find(it => it && it.id === storageRoot.activeId) || null;
+    }
+    if (!target && storageRoot.items.length){
+      target = storageRoot.items[storageRoot.items.length-1];
+    }
+    if (!target){
+      target = createDefaultItem();
+      storageRoot.items.push(target);
+    }
+    storageRoot.activeId = target.id;
+    persistStorageRoot();
+    return target;
+  }
+  function createNewItemFromDefaults(newIndexOverride){
+    const item = createDefaultItem();
+    if (Number.isFinite(newIndexOverride)){
+      item.newIndex = newIndexOverride;
+      storageRoot.lastNewIndex = Math.max(storageRoot.lastNewIndex || 0, newIndexOverride);
+    }
+    storageRoot.items.push(item);
+    storageRoot.activeId = item.id;
+    persistStorageRoot();
+    return item;
+  }
+  function scheduleAutosave(reason){
+    if (reason) dirtyKeys.add(reason);
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(()=>{
+      autosaveTimer = null;
+      flushAutosave();
+    }, AUTOSAVE_DELAY);
+  }
+  function flushAutosave(){
+    if (!activeItem) return;
+    activeItem.updatedAt = Date.now();
+    storageRoot.activeId = activeItem.id;
+    persistStorageRoot();
+    dirtyKeys.clear();
+  }
+  function flushAutosaveNow(){
+    if (autosaveTimer){
+      clearTimeout(autosaveTimer);
+      autosaveTimer = null;
+    }
+    if (dirtyKeys.size) flushAutosave();
+  }
+  function save(key, val){
+    if (!activeItem) return;
+    if (key === 'rows' && val){
+      if (activeItem.rows !== val) activeItem.rows = val;
+    } else if (key === 'classRates' && val){
+      if (activeItem.classRates !== val) activeItem.classRates = val;
+    } else if (key === 'rumah' && val){
+      if (activeItem.rumah !== val) activeItem.rumah = val;
+    }
+    scheduleAutosave(key);
+  }
+  function runClearHooks(){
+    clearHooks.forEach(fn => {
+      try { fn(activeItem); } catch(err){ console.warn('Clear hook error', err); }
+    });
+  }
+  function registerClearHook(fn){
+    if (typeof fn !== 'function') return ()=>{};
+    clearHooks.add(fn);
+    return ()=>clearHooks.delete(fn);
+  }
+  function toISODate(d){
+    if (!(d instanceof Date)) d = new Date(d);
+    if (Number.isNaN(d.getTime())) return '';
+    const month = String(d.getMonth()+1).padStart(2,'0');
+    const date = String(d.getDate()).padStart(2,'0');
+    return `${d.getFullYear()}-${month}-${date}`;
+  }
+  function todayISO(){ return toISODate(new Date()); }
+  function addDaysISO(start, days){
+    const d = new Date(start);
+    if (Number.isNaN(d.getTime())) return '';
+    d.setDate(d.getDate()+days);
+    return toISODate(d);
+  }
+  function updatePeriod(start, end, opts){
+    if (!activeItem) return;
+    const s = start || '';
+    const e = end || '';
+    let changed = false;
+    if (activeItem.periode !== s){ activeItem.periode = s; changed = true; }
+    if (activeItem.sd !== e){ activeItem.sd = e; changed = true; }
+    if (changed && !(opts && opts.skipAutosave)){ scheduleAutosave('period'); }
+  }
+  function syncPeriodInputs(){
+    const s = document.getElementById('periodStart');
+    const e = document.getElementById('periodEnd');
+    if (s) s.value = activeItem ? (activeItem.periode || '') : '';
+    if (e) e.value = activeItem ? (activeItem.sd || '') : '';
+  }
+
+  // Default daftar pekerja
+  const defaultRows = [
+    {nama:'Alex', kelas:'Senior', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Birin', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Oday', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Mulyana', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Dede', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Mamat', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Yusuf', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Hasan', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Deden', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Kus', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Sule', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Nana', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Uto', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Dayat', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Karno', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Haris', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Wawan', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Aki', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Anas', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Nuh', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Yasir', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Mulyadi', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Maman', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Ori', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Mumu', kelas:'Tukang', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Feri', kelas:'Kenek', group:'Alex', rumah:['','','','','','',''], ket:''},
+    {nama:'Muchsin', kelas:'Senior', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Asnim', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Aji', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Gani', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Udin', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Dadang', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Awang', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Samsudin', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Majid', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Adit', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Sarif', kelas:'Kenek', group:'Muchsin', rumah:['','','','','','',''], ket:''},
+    {nama:'Pak Yoto', kelas:'Senior', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Wiryo', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Saleh', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Sugeng', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Fatah', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Supri', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Tarno G', kelas:'Kenek', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Toro', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Tarno T', kelas:'Kenek', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Sutio', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Yadi', kelas:'Senior', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Gita', kelas:'Kenek', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Bas', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Anan', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Ahmad', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Boy', kelas:'Tukang', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Herman', kelas:'Kenek', group:'Toro', rumah:['','','','','','',''], ket:''},
+    {nama:'Akbar', kelas:'Kenek', group:'Toro', rumah:['','','','','','',''], ket:''}
+  ];
+
+  window.__upahRegisterClearHook = registerClearHook;
+  window.__queueUpahAutosave = scheduleAutosave;
+  window.__flushUpahAutosave = flushAutosaveNow;
+  window.__getUpahActiveItem = function(){ return activeItem; };
+
+  registerClearHook(function(){
+    updatePeriod('', '');
+    syncPeriodInputs();
+  });
+
+  migrateLegacyIfNeeded();
+
+  (function initActiveItem(){
+    const params = new URLSearchParams(location.search);
+    const hasNewParam = params.has('new');
+    const newParamRaw = hasNewParam ? params.get('new') : null;
+    const requestedId = params.get('id');
+    if (hasNewParam){
+      const newIdx = Number(newParamRaw);
+      activeItem = createNewItemFromDefaults(Number.isFinite(newIdx) ? newIdx : undefined);
+      const startIso = todayISO();
+      const endIso = addDaysISO(startIso, 6);
+      activeItem.rows = cloneDefaultRows();
+      activeItem.classRates = cloneDefaultRates();
+      activeItem.rumah = cloneDefaultRumah();
+      activeItem.allowanceThreshold = 3.9;
+      activeItem.allowanceAmount = 20000;
+      activeItem.periode = startIso;
+      activeItem.sd = endIso;
+      activeItem.createdAt = Date.now();
+      activeItem.updatedAt = activeItem.createdAt;
+      scheduleAutosave('new');
+    } else {
+      activeItem = selectActiveItemById(requestedId);
+      if (requestedId && activeItem){
+        activeItem.updatedAt = Date.now();
+        persistStorageRoot();
+      }
+    }
+  })();
+
+  if (!activeItem){
+    activeItem = createDefaultItem();
+    storageRoot.items.push(activeItem);
+    storageRoot.activeId = activeItem.id;
+    persistStorageRoot();
+  }
+
+  let initialMutated = false;
+  if (!activeItem.classRates || typeof activeItem.classRates !== 'object'){
+    activeItem.classRates = cloneDefaultRates();
+    initialMutated = true;
+  }
+  if (!Array.isArray(activeItem.rumah) || !activeItem.rumah.length){
+    activeItem.rumah = cloneDefaultRumah();
+    initialMutated = true;
+  }
+  if (!Array.isArray(activeItem.rows) || !activeItem.rows.length){
+    activeItem.rows = cloneDefaultRows();
+    initialMutated = true;
+  }
+  if (snapshotClassRates){
+    activeItem.classRates = structuredClone(snapshotClassRates);
+    initialMutated = true;
+  }
+  if (snapshotRumah){
+    activeItem.rumah = structuredClone(snapshotRumah);
+    initialMutated = true;
+  }
+  if (snapshotRows){
+    activeItem.rows = structuredClone(snapshotRows);
+    initialMutated = true;
+  }
+
+  let classRates = activeItem.classRates;
+  let rumah = activeItem.rumah;
+  let rows = activeItem.rows;
+  rows.forEach(r=>{ if(r.bonus===undefined) { r.bonus=''; initialMutated = true; } });
+
+  let allowanceThreshold = snapshotThreshold !== undefined ? Number(snapshotThreshold) : Number(activeItem.allowanceThreshold ?? 3.9);
+  if (!Number.isFinite(allowanceThreshold)) allowanceThreshold = 3.9;
+  if (activeItem.allowanceThreshold !== allowanceThreshold){ activeItem.allowanceThreshold = allowanceThreshold; initialMutated = true; }
+  let allowanceAmount = snapshotAmount !== undefined ? Number(snapshotAmount) : Number(activeItem.allowanceAmount ?? 20000);
+  if (!Number.isFinite(allowanceAmount)) allowanceAmount = 20000;
+  if (activeItem.allowanceAmount !== allowanceAmount){ activeItem.allowanceAmount = allowanceAmount; initialMutated = true; }
+
+  if (initialMutated){
+    activeItem.updatedAt = Date.now();
+    persistStorageRoot();
+  }
+
+  // ===== Storage helpers =====
+  function rp(n){ n=Number(n||0); return 'Rp '+n.toLocaleString('id-ID'); }
+  function fmtHari(h){ return (Math.round(h*10)/10).toString().replace(/\\.0$/,''); }
+
+  const SAVE_RETRY_DELAYS = [0, 500, 1500];
+  async function saveData(payload){
+    let client;
+    try {
+      client = await ensureApiClient();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Gagal menyiapkan API client', error);
+      throw error;
+    }
+
+    if (!client || typeof client.createRequest !== 'function'){
+      const missing = new Error('Konfigurasi backend tidak tersedia');
+      console.error('saveData: API client hilang', missing);
+      throw missing;
+    }
+
+    const payloadIsObject = payload && typeof payload === 'object';
+    const forceNew = Boolean(payloadIsObject && payload.meta && payload.meta.forceNew);
+    const lastMeta = (typeof window !== 'undefined' && window.__upahLastSnapshotMeta && typeof window.__upahLastSnapshotMeta === 'object')
+      ? window.__upahLastSnapshotMeta
+      : null;
+    const lastKeyRaw = lastMeta && typeof lastMeta.snapshotKey === 'string' ? lastMeta.snapshotKey.trim() : '';
+    const hasExistingKey = Boolean(lastKeyRaw);
+    const shouldCreateNew = forceNew || !hasExistingKey;
+    const targetKey = shouldCreateNew ? null : lastKeyRaw;
+
+    const requestBody = payloadIsObject ? { ...payload } : payload;
+    if (requestBody && typeof requestBody === 'object'){
+      if (shouldCreateNew){
+        delete requestBody.key;
+      } else if (targetKey){
+        requestBody.key = targetKey;
+      }
+    }
+
+    const requestLabel = shouldCreateNew ? 'save' : 'update';
+    const requestMethod = shouldCreateNew ? 'POST' : 'PUT';
+    const requestQuery = { new: shouldCreateNew ? '1' : '0' };
+
+    let lastError = null;
+
+    for (let attempt = 0; attempt < SAVE_RETRY_DELAYS.length; attempt++){
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      try {
+        let requestConfig;
+        try {
+          requestConfig = client.createRequest(requestLabel, {
+            method: requestMethod,
+            body: requestBody,
+            query: requestQuery,
+          });
+        } catch (configErr) {
+          const error = configErr instanceof Error ? configErr : new Error(String(configErr));
+          error.retryable = false;
+          throw error;
+        }
+
+        const fetchInit = { ...requestConfig.init, signal: controller.signal };
+        if (requestConfig.init && requestConfig.init.headers){
+          if (requestConfig.init.headers instanceof Headers){
+            fetchInit.headers = new Headers(requestConfig.init.headers);
+          } else {
+            fetchInit.headers = { ...requestConfig.init.headers };
+          }
+        }
+
+        const response = await fetch(requestConfig.url, fetchInit);
+        clearTimeout(timeoutId);
+
+        const rawBody = await response.text();
+        let data = rawBody;
+        if (rawBody){
+          try { data = JSON.parse(rawBody); }
+          catch (_){ /* raw text fallback */ }
+        }
+
+        const upstreamRejected = data && typeof data === 'object' && data.ok === false;
+        if (!response.ok || upstreamRejected){
+          const statusLabel = response.status ? `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}` : '';
+          const detail = (data && typeof data === 'object')
+            ? (data.error || data.message || JSON.stringify(data))
+            : (typeof data === 'string' && data.trim() ? data.trim() : statusLabel || 'Permintaan gagal');
+          const error = new Error(detail || statusLabel || 'Permintaan gagal');
+          error.status = response.status;
+          error.body = data;
+          error.response = response;
+          throw error;
+        }
+
+        if (data && typeof data === 'object'){
+          if (data.ok === undefined) data.ok = true;
+          return data;
+        }
+
+        return { ok: true, body: data ?? null };
+      } catch (err) {
+        clearTimeout(timeoutId);
+        const error = err && err.name === 'AbortError'
+          ? Object.assign(new Error('Permintaan kedaluwarsa setelah 10 detik'), { name: err.name })
+          : err instanceof Error ? err : new Error(String(err));
+        console.error('saveData attempt failed', error);
+        lastError = error;
+
+        const status = typeof error?.status === 'number' ? error.status : null;
+        let retryable = error.name === 'AbortError' || status === null || status >= 500;
+        if (error && error.retryable === false){
+          retryable = false;
+        }
+
+        if (attempt < SAVE_RETRY_DELAYS.length - 1 && retryable){
+          const delay = SAVE_RETRY_DELAYS[attempt + 1];
+          if (delay){
+            await new Promise(res => setTimeout(res, delay));
+          }
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw lastError || new Error('Gagal menyimpan data');
+  }
+
+  let saveInProgress = false;
+  function setSaveStatus(message, opts){
+    const statusEl = document.getElementById('saveStatus');
+    if (statusEl){ statusEl.textContent = message || ''; }
+    const btn = document.getElementById('saveButton');
+    if (btn){ btn.disabled = Boolean(opts && opts.disableButton); }
+  }
+
+  async function saveAll(){
+    if (saveInProgress) return null;
+    saveInProgress = true;
+
+    setSaveStatus('Menyimpan…', { disableButton: true });
+
+    window.__upahLastSnapshotMeta = null;
+    let snapshotDocument = '';
+
+    try {
+      save('rows', rows); save('classRates', classRates); save('rumah', rumah);
+      if (activeItem){
+        activeItem.allowanceThreshold = allowanceThreshold;
+        activeItem.allowanceAmount = allowanceAmount;
+        scheduleAutosave('allowance');
+        flushAutosaveNow();
+      }
+
+      const snapshotPayload = buildSnapshotPayload();
+      snapshotDocument = snapshotPayload.html;
+
+      const result = await saveData(snapshotPayload);
+      const normalized = (result && typeof result === 'object') ? result : { ok: true };
+
+      const snapshotMeta = (normalized && normalized.ok !== false)
+        ? {
+            snapshotKey: normalized.key ?? normalized.snapshotKey ?? null,
+            snapshotCreatedAt: normalized.createdAt ?? normalized.snapshotCreatedAt ?? null
+          }
+        : null;
+
+      window.__upahLastSnapshotMeta = snapshotMeta;
+      try {
+        if (typeof window.__saveWeeklyToHistory === 'function') {
+          window.__saveWeeklyToHistory(snapshotMeta || undefined);
+          if (snapshotMeta === null) {
+            window.__saveWeeklyToHistory({ snapshotKey: null, snapshotCreatedAt: null, hasSnap: false });
+          }
+        }
+      } catch(historyError){
+        console.warn('Gagal memperbarui riwayat periode', historyError);
+      }
+
+      setSaveStatus('Tersimpan ✓', { disableButton: false });
+      return normalized;
+    } catch (err) {
+      window.__upahLastSnapshotMeta = null;
+      try {
+        if (typeof window.__saveWeeklyToHistory === 'function') {
+          window.__saveWeeklyToHistory();
+        }
+      } catch(historyError){
+        console.warn('Gagal memperbarui riwayat periode', historyError);
+      }
+
+      if (snapshotDocument){
+        try {
+          triggerSnapshotDownload(snapshotDocument);
+        } catch (downloadErr){
+          console.error('Fallback download failed', downloadErr);
+        }
+      }
+
+      console.error('saveAll failed', err);
+      const message = err && err.message ? err.message : 'Terjadi kesalahan tak dikenal';
+      setSaveStatus(`Gagal: ${message}`, { disableButton: false });
+      return null;
+    } finally {
+      saveInProgress = false;
+    }
+  }
+
+  function resetAll(){
+    if(!confirm('Reset semua data ke default?')) return;
+    classRates = activeItem.classRates = cloneDefaultRates();
+    rumah = activeItem.rumah = cloneDefaultRumah();
+    allowanceThreshold = activeItem.allowanceThreshold = 3.9;
+    allowanceAmount = activeItem.allowanceAmount = 20000;
+    restoreDefaultRows();
+    save('classRates', classRates);
+    save('rumah', rumah);
+    scheduleAutosave('allowance');
+    bootRatesUI(); renderRumah(); bootBerasUI();
+    syncPeriodInputs();
+  }
+  function restoreDefaultRows(){
+    if (!activeItem) return;
+    rows = activeItem.rows = cloneDefaultRows();
+    rows.forEach(r=>{ if(r.bonus===undefined) r.bonus=''; });
+    rerender();
+    save('rows', rows);
+    runClearHooks();
+  }
+
+  let searchName = (localStorage.getItem('upah20_search')||'');
+  let viewMode = localStorage.getItem('upah20_viewMode') || (window.innerWidth<=900 ? 'cards' : 'table');
+  // ===== UI logic =====
+  function restoreDefaultRates(){
+    classRates = activeItem.classRates = cloneDefaultRates();
+    bootRatesUI();
+    rerender();
+    save('classRates', classRates);
+  }
+  function restoreDefaultRumah(){
+    rumah = activeItem.rumah = cloneDefaultRumah();
+    renderRumah();
+    rerender();
+    save('rumah',rumah);
+  }
+
+  function bootRatesUI(){
+    document.getElementById('rateSenior').value = classRates['Senior']||0;
+    document.getElementById('rateTukang').value = classRates['Tukang']||0;
+    document.getElementById('rateKenek').value = classRates['Kenek']||0;
+  }
+
+  function bootBerasUI(){
+    document.getElementById('thresholdInput').value = allowanceThreshold || 0;
+    document.getElementById('berasInput').value = allowanceAmount || 0;
+  }
+  function updateBerasRule(){
+    let t = Number(document.getElementById('thresholdInput').value||0);
+    let a = Number(document.getElementById('berasInput').value||0);
+    if (!Number.isFinite(t)) t = 0;
+    if (!Number.isFinite(a)) a = 0;
+    allowanceThreshold = t; allowanceAmount = a;
+    if (activeItem){
+      activeItem.allowanceThreshold = t;
+      activeItem.allowanceAmount = a;
+      scheduleAutosave('allowance');
+    }
+    rerender();
+  }
+
+  function renderRumah(){
+    const box=document.getElementById('rumahList'); box.innerHTML='';
+    rumah.forEach((r,idx)=>{
+      const div=document.createElement('span'); div.className='chip';
+      const s=document.createElement('span'); s.textContent=r; div.appendChild(s);
+      const b=document.createElement('button'); b.textContent='✕'; b.onclick=()=>{ rumah.splice(idx,1); renderRumah(); rerender(); save('rumah',rumah); }; div.appendChild(b);
+      box.appendChild(div);
+    });
+  }
+  function addRumah(){
+    const el=document.getElementById('inpRumah'); const v=(el.value||'').trim();
+    if(!v) return; if(!rumah.includes(v)) rumah.push(v);
+    el.value=''; renderRumah(); rerender(); save('rumah',rumah);
+  }
+  function clearRumah(){
+    if(!confirm('Kosongkan semua rumah?')) return;
+    rumah = activeItem.rumah = [];
+    renderRumah(); rerender(); save('rumah',rumah);
+  }
+
+  function addWorker(){
+    rows.push({ nama:'', kelas:'Tukang', group:'', rumah:['','','','','','',''], ket:'' });
+    rerender();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  function removeWorker(i){ rows.splice(i,1); rerender(); }
+  function clearAllDays(){ rows.forEach(r=> r.rumah=['','','','','','','']); rerender(); }
+    // Helpers to group rows
+  
+function groupRows(){
+  const map = new Map();
+  groupList.forEach(g=> map.set(g, []));
+  const others = new Map();
+  // Keep ORIGINAL index from `rows`, even when filtering by search
+  const _sourceRows = (searchName && searchName.length)
+    ? rows.map((r,i)=>[r,i]).filter(([r])=> String(r.nama||'').toLowerCase().includes(searchName))
+    : rows.map((r,i)=>[r,i]);
+  _sourceRows.forEach(([r,idx])=>{
+    const g = r.group || '';
+    const item = {row:r, idx};
+    if(map.has(g)){ map.get(g).push(item); }
+    else {
+      if(!others.has(g)) others.set(g, []);
+      others.get(g).push(item);
+    }
+  });
+  const arr = [];
+  map.forEach((items,g)=>{ arr.push([g, items]); });
+  if(others.has('')){
+    arr.push(['— Tanpa Group —', others.get('')]);
+    others.delete('');
+  }
+  others.forEach((items,g)=>{ arr.push([g, items]); });
+  return arr.filter(([g,items])=> items.length>0);
+}
+function rowCalc(r){
+    const rate=Number(classRates[r.kelas]||0);
+    const rumahVals = Array.isArray(r.rumah) ? r.rumah : [];
+    const hari = rumahVals.reduce((a,b)=> a + calcDayWeight(b), 0);
+    const upahPokok = hari * rate;
+    const uangBeras = hari > allowanceThreshold ? allowanceAmount : 0;
+    const bonus = Number((r.bonus??'').toString().replace(/[^\d]/g,''))||0;
+    const totalBayar = upahPokok + uangBeras + bonus;
+    return {rate, hari, upahPokok, uangBeras, bonus, totalBayar};
+  }
+
+  function renderTable(){
+    const tbody=document.getElementById('tbody'); tbody.innerHTML='';
+    let sumHari=0, sumUpahPokok=0, sumBeras=0, sumBonus=0, sumTotalBayar=0;
+    const grouped = groupRows();
+    const colCount = 19;
+
+    grouped.forEach(([gName, items])=>{
+      let zi = 0; // zebra counter per-group
+      const trHead = document.createElement('tr');
+      trHead.className = 'group-head';
+      const td = document.createElement('td'); td.colSpan = colCount; 
+      td.innerHTML = `Group: <b>${gName || '—'}</b> <span class="muted">( ${items.length} orang )</span>`;
+      trHead.appendChild(td);
+      tbody.appendChild(trHead);
+
+      let gHari=0,gUpah=0,gBeras=0,gBonus=0,gTotal=0;
+      items.forEach(({row:r, idx})=>{
+        const tr=document.createElement('tr');
+        const tdNo=document.createElement('td'); tdNo.className='center'; tdNo.textContent=idx+1; tr.appendChild(tdNo);
+
+        const tdNama=document.createElement('td'); tdNama.innerHTML = `<input class='input' value="${r.nama||''}" oninput="rows[${idx}].nama=this.value; save('rows',rows);" />`; tr.appendChild(tdNama);
+
+        const tdKelas=document.createElement('td');
+        const sK=document.createElement('select'); sK.className='input';
+        ['Senior','Tukang','Kenek'].forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; if((r.kelas||'Tukang')===k) o.selected=true; sK.appendChild(o); });
+        sK.onchange=(e)=>{ rows[idx].kelas=e.target.value; rerender(); }; tdKelas.appendChild(sK); tr.appendChild(tdKelas);
+
+        const tdGroup=document.createElement('td');
+        const sG=document.createElement('select'); sG.className='input';
+        const opt0=document.createElement('option'); opt0.value=''; opt0.textContent='—'; sG.appendChild(opt0);
+        groupList.forEach(gg=>{ const o=document.createElement('option'); o.value=gg; o.textContent=gg; if((r.group||'')===gg) o.selected=true; sG.appendChild(o); });
+        sG.onchange=(e)=>{ rows[idx].group = e.target.value; save('rows', rows); rerender(); };
+        tdGroup.appendChild(sG); tr.appendChild(tdGroup);
+
+        const {rate, hari, upahPokok, uangBeras, bonus, totalBayar} = rowCalc(r);
+        const tdRate=document.createElement('td'); tdRate.className='right hide-sm'; tdRate.textContent=rp(rate); tr.appendChild(tdRate);
+
+        for (let ui=0; ui<7; ui++){ const di = displayDayOrder[ui];
+          const tdR=document.createElement('td'); tdR.className='center';
+          const sel=document.createElement('select'); sel.className='input';
+          const p0=document.createElement('option'); p0.value=''; p0.textContent='—'; sel.appendChild(p0);
+          rumah.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; if((r.rumah[di]||'')===k) o.selected=true; sel.appendChild(o); });
+          sel.onchange=(e)=>{ rows[idx].rumah[di]=e.target.value; rerender(); };
+          tdR.appendChild(sel);
+          tr.appendChild(tdR);
+        }
+
+        const tdH=document.createElement('td'); tdH.className='right'; tdH.textContent=fmtHari(hari); tr.appendChild(tdH);
+        const tdU=document.createElement('td'); tdU.className='right'; tdU.textContent=rp(upahPokok); tr.appendChild(tdU);
+        const tdB=document.createElement('td'); tdB.className='right'; tdB.textContent=rp(uangBeras); tr.appendChild(tdB);
+        const tdBonus=document.createElement('td'); tdBonus.className='right'; tdBonus.innerHTML = `<input class='input right' type='number' inputmode='numeric' placeholder='0' value="${(r.bonus??'')}" oninput="this.value=this.value.replace(/[^\\d]/g,''); rows[${idx}].bonus=this.value; save('rows',rows);" onblur="rerender();" />`; tr.appendChild(tdBonus);
+        const tdTB=document.createElement('td'); tdTB.className='right'; tdTB.textContent=rp(totalBayar); tr.appendChild(tdTB);
+
+        const tdKet=document.createElement('td'); tdKet.className='hide-sm'; tdKet.innerHTML = `<input class='input' placeholder='Keterangan…' value="${r.ket||''}" oninput="rows[${idx}].ket=this.value; save('rows',rows);" />`; tr.appendChild(tdKet);
+
+        const tdA=document.createElement('td'); tdA.className='center'; tdA.innerHTML=`<button class='btn small' onclick='removeWorker(${idx})'>Hapus</button>`; tr.appendChild(tdA);
+
+        sumHari += hari; sumUpahPokok += upahPokok; sumBeras += uangBeras; sumBonus += bonus; sumTotalBayar += totalBayar;
+        gHari += hari; gUpah += upahPokok; gBeras += uangBeras; gBonus += bonus; gTotal += totalBayar;
+        
+        tr.classList.add( (zi % 2 === 0) ? 'zebra-a' : 'zebra-b' );
+        zi++;
+    
+        tbody.appendChild(tr);
+      });
+
+      const trSub = document.createElement('tr'); trSub.className='group-sub';
+      trSub.innerHTML = `
+        <td colspan="12" class="right sum">Subtotal Group ${gName}</td>
+        <td class="right sum">${fmtHari(gHari)}</td>
+        <td class="right sum">${rp(gUpah)}</td>
+        <td class="right sum">${rp(gBeras)}</td>
+        <td class="right sum">${rp(gBonus)}</td>
+        <td class="right sum">${rp(gTotal)}</td>
+        <td class="hide-sm"></td><td></td>`;
+      tbody.appendChild(trSub);
+    });
+
+    document.getElementById('sumHari').textContent=fmtHari(sumHari);
+    document.getElementById('sumUpahPokok').textContent=rp(sumUpahPokok);
+    document.getElementById('sumBeras').textContent=rp(sumBeras);
+    document.getElementById('sumTotalBayar').textContent=rp(sumTotalBayar);
+    document.getElementById('sumBonus').textContent=rp(sumBonus);
+    // Pills
+    (function(){
+    var el;
+    el=document.getElementById('pillHari'); if(el) el.textContent=fmtHari(sumHari);
+    el=document.getElementById('pillPokok'); if(el) el.textContent=rp(sumUpahPokok);
+    el=document.getElementById('pillBeras'); if(el) el.textContent=rp(sumBeras);
+    el=document.getElementById('pillTotal'); if(el) el.textContent=rp(sumTotalBayar);
+  })();
+
+    save('rows',rows); save('classRates',classRates);
+    renderAllRekap();
+  }
+
+  function quickChipsHTML(idx){
+    const tops = rumah.slice(0, Math.min(6, rumah.length));
+    const chips = tops.map(r=>`<span class='chip' onclick='setAllDays(${idx}, ${JSON.stringify(r)})'>${r}</span>`).join('');
+    const half = rumah.includes('1/2 Lain') ? "<span class='chip' onclick=\"setAllDays("+idx+", '1/2 Lain')\">1/2 Lain</span>" : '';
+    return chips + half;
+  }
+  function setAllDays(idx, val){
+    rows[idx].rumah = dayKeys.map(()=> val); rerender();
+  }
+
+  function renderCards(){
+    const host = document.getElementById('cardsBody'); host.innerHTML='';
+    const grouped = groupRows();
+
+    let sumHari=0, sumUpahPokok=0, sumBeras=0, sumBonus=0, sumTotalBayar=0;
+
+    grouped.forEach(([gName, items])=>{
+      let zc = 0; // zebra counter for cards
+      const gh = document.createElement('div');
+      gh.className='chip'; gh.style.margin='6px 0 8px'; gh.innerHTML = `Group: <b style="margin-left:6px;">${gName || '—'}</b> <span class="muted" style="margin-left:6px;">(${items.length} orang)</span>`;
+      host.appendChild(gh);
+
+      let gHari=0,gUpah=0,gBeras=0,gBonus=0,gTotal=0;
+
+      items.forEach(({row:r, idx})=>{
+        const {rate, hari, upahPokok, uangBeras, bonus, totalBayar} = rowCalc(r);
+
+        const card = document.createElement('div');
+        card.className='worker-card';
+        card.innerHTML = `
+          <div class="card-header">
+            <input class="input" value="${r.nama||''}" placeholder="Nama pekerja" oninput="rows[${idx}].nama=this.value; save('rows',rows);" style="max-width:52%;">
+            <button class="btn small" onclick="removeWorker(${idx})">Hapus</button>
+          </div>
+          <div class="kv" style="margin:8px 0;">
+            <div style="min-width:130px; flex:1;">
+              <label class="muted">Kelas</label>
+              <select class="input" onchange="rows[${idx}].kelas=this.value; rerender();">
+                ${['Senior','Tukang','Kenek'].map(k=>`<option ${((r.kelas||'Tukang')===k)?'selected':''}>${k}</option>`).join('')}
+              </select>
+            </div>
+            <div style="min-width:130px; flex:1;">
+              <label class="muted">Group</label>
+              <select class="input" onchange="rows[${idx}].group=this.value; save('rows',rows); rerender();">
+                <option value="">—</option>
+                ${groupList.map(g=>`<option value="${g}" ${(r.group||'')===g?'selected':''}>${g}</option>`).join('')}
+              </select>
+            </div>
+          </div><div class="daygrid" style="margin-top:8px;">
+            ${displayDayKeys.map((d,ui)=>`
+              <div class="item">
+                <label class="muted">${d}</label>
+                <select class="input" onchange="rows[${idx}].rumah[${displayDayOrder[ui]}]=this.value; rerender();">
+                  <option value="">—</option>
+                  ${rumah.map(k=>`<option value="${k}" ${(r.rumah[displayDayOrder[ui]]||'')===k?'selected':''}>${k}</option>`).join('')}
+                </select>
+              </div>
+            `).join('')}
+          </div>
+          <div class="totals" style="margin-top:10px;">
+            <span class="chip">Tarif: <b style="margin-left:6px;">${rp(rate)}</b></span>
+            <span class="chip">Hari: <b style="margin-left:6px;">${fmtHari(hari)}</b></span>
+            <span class="chip">Upah: <b style="margin-left:6px;">${rp(upahPokok)}</b></span>
+            <span class="chip">Beras: <b style="margin-left:6px;">${rp(uangBeras)}</b></span>
+            <span class="chip">Total: <b style="margin-left:6px;">${rp(totalBayar)}</b></span>
+          </div>
+        `;
+        
+    card.classList.add( (zc % 2 === 0) ? 'zebra-a' : 'zebra-b' );
+    zc++;
+    
+    host.appendChild(card);
+
+        sumHari += hari; sumUpahPokok += upahPokok; sumBeras += uangBeras; sumBonus += bonus; sumTotalBayar += totalBayar;
+        gHari += hari; gUpah += upahPokok; gBeras += uangBeras; gBonus += bonus; gTotal += totalBayar;
+      });
+
+      const sub = document.createElement('div');
+      sub.className='chip'; sub.style.margin='2px 0 12px'; sub.style.background='rgba(14,165,183,0.08)';
+      sub.innerHTML = `Subtotal ${gName}: <b style="margin-left:6px;">Hari ${fmtHari(gHari)}</b> • <b style="margin-left:6px;">${rp(gTotal)}</b>`;
+      host.appendChild(sub);
+    });
+
+    // Pills totals update
+    document.getElementById('pillHari').textContent=fmtHari(sumHari);
+    document.getElementById('pillPokok').textContent=rp(sumUpahPokok);
+    document.getElementById('pillBeras').textContent=rp(sumBeras);
+    document.getElementById('pillTotal').textContent=rp(sumTotalBayar);
+
+    save('rows',rows); save('classRates',classRates);
+    renderAllRekap();
+  }
+
+  // Rekap total per rumah
+  function computeRekap(){
+    const map = {};
+    rows.forEach(r=>{
+      const rate = Number(classRates[r.kelas]||0);
+      const rumahVals = Array.isArray(r.rumah) ? r.rumah : [];
+      for(let di=0; di<7; di++){
+        const v = rumahVals[di];
+        if(!v) continue;
+        const w = calcDayWeight(v);
+        if(!w) continue;
+        if(!map[v]) map[v] = {hari:0, upah:0};
+        map[v].hari += w;
+        map[v].upah += rate * w;
+      }
+    });
+    return map;
+  }
+  function computeRekapPerDay(){
+    const map = {}; // {Rumah: [{cnt, upah} x7]}
+    rows.forEach(r=>{
+      const rate = Number(classRates[r.kelas]||0);
+      const rumahVals = Array.isArray(r.rumah) ? r.rumah : [];
+      for(let di=0; di<7; di++){
+        const v = rumahVals[di];
+        if(!v) continue;
+        const w = calcDayWeight(v);
+        if(!map[v]) map[v] = Array.from({length:7}, ()=>({cnt:0, upah:0}));
+        map[v][di].cnt += 1;
+        map[v][di].upah += rate * w;
+      }
+    });
+    return map;
+  }
+  function renderRekapIn(containerId){
+    const host = document.getElementById(containerId);
+    if(!host) return;
+    const map = computeRekap();
+    const keys = Object.keys(map).sort((a,b)=>{
+      const ia = rumah.indexOf(a), ib = rumah.indexOf(b);
+      if(ia!==-1 && ib!==-1) return ia-ib;
+      if(ia!==-1) return -1;
+      if(ib!==-1) return 1;
+      return a.localeCompare(b);
+    });
+    if(keys.length===0){ host.innerHTML = '<div class="muted">Belum ada data.</div>'; return; }
+    let totalHari=0, totalUpah=0;
+    const rowsHTML = keys.map(k=>{
+      const h = map[k].hari; const u = map[k].upah;
+      totalHari += h; totalUpah += u;
+      return `<tr><td>${k}</td><td class="right">${fmtHari(h)}</td><td class="right">${rp(u)}</td></tr>`;
+    }).join('');
+    host.innerHTML = `
+      <div class="scroll-x">
+        <table style="min-width:520px;">
+          <thead><tr><th>Rumah</th><th class="right">Total Hari</th><th class="right">Total Upah</th></tr></thead>
+          <tbody>${rowsHTML}</tbody>
+          <tfoot><tr><td class="right sum">TOTAL</td><td class="right sum">${fmtHari(totalHari)}</td><td class="right sum">${rp(totalUpah)}</td></tr></tfoot>
+        </table>
+      </div>`;
+  }
+  function renderRekapPerDayIn(containerId){
+    const host = document.getElementById(containerId);
+    if(!host) return;
+    const map = computeRekapPerDay();
+    const keys = Object.keys(map).sort((a,b)=>{
+      const ia = rumah.indexOf(a), ib = rumah.indexOf(b);
+      if(ia!==-1 && ib!==-1) return ia-ib;
+      if(ia!==-1) return -1;
+      if(ib!==-1) return 1;
+      return a.localeCompare(b);
+    });
+    if(keys.length===0){ host.innerHTML = '<div class="muted">Belum ada data.</div>'; return; }
+    const headerDays = displayDayKeys.map(d=>`<th class="right">${d}</th>`).join('');
+    const rowsHTML = keys.map(k=>{
+      const cells = displayDayOrder.map(di => map[k][di]).map(x=>`<td class="right"><div class=\"cellstack\"><span class=\"cnt\">x${x.cnt}</span><span>${rp(x.upah)}</span></div></td>`).join('');
+      return `<tr><td>${k}</td>${cells}</tr>`;
+    }).join('');
+    const totals = displayDayOrder.map(di=>{ let cnt=0, up=0; keys.forEach(k=>{ cnt += map[k][di].cnt; up += map[k][di].upah; }); return `<td class=\"right\"><div class=\"cellstack\"><span class=\"cnt\">x${cnt}</span><span>${rp(up)}</span></div></td>`; }).join('');
+    host.innerHTML = `
+      <div class="scroll-x">
+        <table style="min-width:900px;">
+          <thead><tr><th>Rumah</th>${headerDays}</tr></thead>
+          <tbody>${rowsHTML}</tbody>
+          <tfoot><tr><td class="right sum">TOTAL</td>${totals}</tr></tfoot>
+        </table>
+      </div>`;
+  }
+  function renderAllRekap(){
+    renderRekapIn('rekap3Body'); 
+    renderRekapPerDayIn('rekap3DayBody');
+  }
+
+  // ===== Export Helpers =====
+  function _timestampName(prefix, ext){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const name = `${prefix}_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
+    return name;
+  }
+  function _downloadBlob(content, mime, filename){
+    const blob = new Blob([content], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    // Fallback for browsers that don't honor download attribute
+    if (typeof a.download === 'undefined') {
+      window.open(url, '_blank');
+    } else {
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  }
+
+  function buildSnapshotPayload(){
+    const payload = {
+      rows,
+      classRates,
+      rumah,
+      allowanceThreshold,
+      allowanceAmount
+    };
+    const serialized = JSON.stringify(payload).replace(/</g, '\\u003C');
+    const doc = document;
+    const docType = doc.doctype
+      ? `<!DOCTYPE ${doc.doctype.name}${doc.doctype.publicId ? ` PUBLIC "${doc.doctype.publicId}"` : ''}${!doc.doctype.publicId && doc.doctype.systemId ? ' SYSTEM' : ''}${doc.doctype.systemId ? ` "${doc.doctype.systemId}"` : ''}>`
+      : '<!doctype html>';
+    const html = doc.documentElement.outerHTML;
+    const injection = `<script>window.__UPAH_DATA__ = ${serialized};</` + `script>`;
+    const bodyOpen = html.match(/<body[^>]*>/i);
+    const htmlWithData = bodyOpen
+      ? html.replace(bodyOpen[0], `${bodyOpen[0]}${injection}`)
+      : (html.includes('</body>') ? html.replace('</body>', `${injection}</body>`) : `${html}${injection}`);
+    const htmlDocument = `${docType}\n${htmlWithData}`;
+
+    const meta = {
+      generatedAt: new Date().toISOString(),
+      page: location.href,
+      period: {
+        start: activeItem ? (activeItem.periode || null) : null,
+        end: activeItem ? (activeItem.sd || null) : null,
+      },
+      rowsCount: Array.isArray(rows) ? rows.length : 0,
+    };
+
+    return { html: htmlDocument, meta };
+  }
+
+  function triggerSnapshotDownload(htmlDocument){
+    if (!htmlDocument) return;
+    _downloadBlob(htmlDocument, 'text/html;charset=utf-8', _timestampName('upah7hari_snapshot', 'html'));
+  }
+
+  // Export JSON (raw data + settings)
+  function exportJSON(){
+    try{
+      const payload = {
+        meta: {
+          generated_at: new Date().toISOString(),
+          title: 'Kalkulator Upah 7 Hari',
+          version: 1
+        },
+        settings: {
+          classRates,
+          rumah,
+          allowanceThreshold,
+          allowanceAmount,
+          dayKeys,
+          groupList
+        },
+        rows
+      };
+      const jsonStr = JSON.stringify(payload, null, 2);
+      _downloadBlob(jsonStr, 'application/json', _timestampName('upah7hari', 'json'));
+    }catch(err){
+      console.error(err);
+      alert('Gagal mengekspor JSON: ' + err.message);
+    }
+  }
+
+  function _prepareExportSections(){
+    if (!window.UpahExport || typeof window.UpahExport.buildSections !== 'function'){
+      throw new Error('Fitur ekspor tidak tersedia.');
+    }
+    return window.UpahExport.buildSections({
+      rows,
+      classRates,
+      rumah,
+      allowanceThreshold,
+      allowanceAmount,
+      dayKeys,
+      displayDayOrder,
+      periode: activeItem ? (activeItem.periode || '') : '',
+      sd: activeItem ? (activeItem.sd || '') : ''
+    });
+  }
+
+  // Export CSV (tampilan tabel pekerja + rekap)
+  function downloadCSV(){
+    try{
+      const exportData = _prepareExportSections();
+      const csv = window.UpahExport.sectionsToCSV(exportData.sections);
+      const nameFn = window.UpahExport && typeof window.UpahExport.timestampName === 'function'
+        ? window.UpahExport.timestampName
+        : _timestampName;
+      _downloadBlob(csv, 'text/csv;charset=utf-8', nameFn('upah7hari', 'csv'));
+    }catch(err){
+      console.error(err);
+      alert('Gagal mengekspor CSV: ' + err.message);
+    }
+  }
+
+  function downloadXLSX(){
+    try{
+      if (!window.UpahExport || typeof window.UpahExport.sectionsToXLSX !== 'function'){
+        throw new Error('Fitur XLSX tidak tersedia.');
+      }
+      const exportData = _prepareExportSections();
+      const workbook = window.UpahExport.sectionsToXLSX(exportData.sections);
+      const nameFn = window.UpahExport && typeof window.UpahExport.timestampName === 'function'
+        ? window.UpahExport.timestampName
+        : _timestampName;
+      _downloadBlob(workbook, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', nameFn('upah7hari', 'xlsx'));
+    }catch(err){
+      console.error(err);
+      alert('Gagal mengekspor XLSX: ' + err.message);
+    }
+  }
+
+
+  function setView(m){ viewMode = m; localStorage.setItem('upah20_viewMode', m); rerender(); }
+  function toggleView(){ return viewMode==='table' ? 'cards' : 'table'; }
+
+  function rerender(){
+    document.getElementById('tableWrap').style.display = (viewMode==='table') ? 'block' : 'none';
+    document.getElementById('cardsWrap').style.display = (viewMode==='cards') ? 'block' : 'none';
+    if(viewMode==='table') renderTable(); else renderCards();
+    save('rows',rows); save('classRates',classRates);
+  }
+
+  // Boot
+  
+  // Collapsible persistence
+  const _collSections = [
+    {id:'secRates', key:'upah20_coll_rates'},
+    {id:'secRumah', key:'upah20_coll_rumah'},
+    {id:'rekap3', key:'upah20_coll_rekapTotal'},
+    {id:'rekap3day', key:'upah20_coll_rekapPerHari'},
+  ];
+  function bootCollapsibles(){
+    _collSections.forEach(({id,key})=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      const saved = localStorage.getItem(key);
+      if(saved===null){ el.removeAttribute('open'); }
+      else if(saved==='0'){ el.removeAttribute('open'); }
+      else if(saved==='1'){ el.setAttribute('open',''); }
+      el.addEventListener('toggle', ()=>{
+        localStorage.setItem(key, el.open ? '1' : '0');
+      });
+    });
+  }
+
+  function init(){
+    bootRatesUI(); renderRumah(); bootBerasUI();
+    bootCollapsibles();
+    const si = document.getElementById('searchName');
+    if(si){
+      si.value = searchName || '';
+      si.addEventListener('input', e=>{
+        searchName = String(e.target.value||'').toLowerCase().trim();
+        localStorage.setItem('upah20_search', searchName);
+        rerender();
+      });
+    }
+    rerender();
+  }
+  init();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  try{
+    if (typeof allowanceThreshold !== 'undefined') {
+      const t = document.getElementById('thresholdInput'); if (t) t.value = allowanceThreshold;
+    }
+    if (typeof allowanceAmount !== 'undefined') {
+      const b = document.getElementById('berasInput'); if (b) b.value = allowanceAmount;
+    }
+  }catch(e){ console.error(e); }
+
+  try {
+    const btn = document.getElementById('saveButton');
+    if (btn){
+      btn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        saveAll();
+      });
+    }
+  } catch (err) {
+    console.error('Gagal menginisialisasi tombol simpan', err);
+  }
+});
+</script>
+
+
+
+<script>
+// === Injected by ChatGPT (tidy): robust sticky header/footer with debounced sync ===
+(function(){
+  const wrap = document.getElementById('tableWrap');
+  const tbl  = document.getElementById('tbl');
+  if(!wrap || !tbl) return;
+  if (wrap.dataset.stickyApplied === '1') return;
+  wrap.dataset.stickyApplied = '1';
+
+  const headBox = document.createElement('div');
+  headBox.className = 'sticky-header';
+  const footBox = document.createElement('div');
+  footBox.className = 'sticky-footer';
+
+  const headTable = document.createElement('table');
+  const footTable = document.createElement('table');
+  headBox.appendChild(headTable);
+  footBox.appendChild(footTable);
+
+  const thead = tbl.querySelector('thead');
+  const tfoot = tbl.querySelector('tfoot');
+
+  if (thead){
+    headTable.innerHTML = '<thead>' + thead.innerHTML + '</thead>';
+    thead.classList.add('is-hidden');
+  }
+  if (tfoot){
+    footTable.innerHTML = '<tfoot>' + tfoot.innerHTML + '</tfoot>';
+    tfoot.classList.add('is-hidden');
+  }
+
+  wrap.prepend(headBox);
+  wrap.appendChild(footBox);
+
+  const raf = window.requestAnimationFrame;
+  let rAF_token = null;
+  let scrollLeftMemo = 0;
+
+  function measureAndSync(){
+    rAF_token = null;
+    const srcRow = tbl.tHead ? tbl.tHead.rows[0] : (tbl.tBodies[0]?.rows[0] || null);
+    const dstHeadRow = headTable.tHead ? headTable.tHead.rows[0] : null;
+    const dstFootRow = footTable.tFoot ? footTable.tFoot.rows[0] : null;
+    if (srcRow && dstHeadRow){
+      const srcCells = Array.from(srcRow.cells);
+      const dstCells = Array.from(dstHeadRow.cells);
+      const n = Math.min(srcCells.length, dstCells.length);
+      for (let i=0;i<n;i++){
+        const w = srcCells[i].getBoundingClientRect().width;
+        Object.assign(dstCells[i].style, {width: w+'px', minWidth: w+'px', maxWidth: w+'px'});
+      }
+    }
+    if (srcRow && dstFootRow){
+      const srcCells = Array.from(srcRow.cells);
+      const dstCells = Array.from(dstFootRow.cells);
+      const n = Math.min(srcCells.length, dstCells.length);
+      for (let i=0;i<n;i++){
+        const w = srcCells[i].getBoundingClientRect().width;
+        Object.assign(dstCells[i].style, {width: w+'px', minWidth: w+'px', maxWidth: w+'px'});
+      }
+    }
+    const headH = headBox.getBoundingClientRect().height;
+    const footH = footBox.getBoundingClientRect().height;
+    wrap.classList.add('padding-for-sticky');
+    wrap.style.setProperty('--stickyHeadH', headH + 'px');
+    wrap.style.setProperty('--stickyFootH', footH + 'px');
+
+    // keep overlays aligned with horizontal scroll
+    headTable.style.transform = `translateX(${-wrap.scrollLeft}px)`;
+    footTable.style.transform = `translateX(${-wrap.scrollLeft}px)`;
+  }
+
+  function debounceSync(){
+    if (rAF_token) return;
+    rAF_token = raf(measureAndSync);
+  }
+
+  function syncFooterContent(){
+    const origFoot = tbl.querySelector('tfoot');
+    if (!origFoot || !footTable.tFoot) return;
+    footTable.tFoot.innerHTML = origFoot.innerHTML;
+    debounceSync();
+  }
+
+  // Observe table changes (totals update)
+  const mo = new MutationObserver(syncFooterContent);
+  mo.observe(tbl, {subtree: true, childList: true, characterData: true});
+
+  // Initial sync after layout
+  raf(()=>{ debounceSync(); syncFooterContent(); });
+
+  // Resync on resize and on column visibility toggles (if any)
+  window.addEventListener('resize', debounceSync);
+
+  // Horizontal scroll alignment
+  wrap.addEventListener('scroll', ()=>{
+    // Only reapply transform if changed enough
+    if (wrap.scrollLeft !== scrollLeftMemo){
+      scrollLeftMemo = wrap.scrollLeft;
+      headTable.style.transform = `translateX(${-scrollLeftMemo}px)`;
+      footTable.style.transform = `translateX(${-scrollLeftMemo}px)`;
+    }
+  }, {passive:true});
+})();
+</script>
+
+
+<!-- === Hide Kelas & Group: JS === -->
+<script>
+(function(){
+  const LS_KEY = 'upah_hide_cg';
+  const COLS_HIDDEN = 2;
+  let baseTfootColspan = null;
+
+  function markCardKVs(){
+    const wrap = document.getElementById('cardsWrap');
+    if(!wrap) return;
+    wrap.querySelectorAll('.kv').forEach(kv => {
+      const k = kv.querySelector('.k');
+      const label = (k?.textContent || '').trim().toLowerCase();
+      if(label === 'kelas' || label === 'group'){
+        kv.classList.add('hide-cg');
+      }
+    });
+  }
+
+  function observeCardsWrap(){
+    const wrap = document.getElementById('cardsWrap');
+    if(!wrap) return;
+    const mo = new MutationObserver(() => markCardKVs());
+    mo.observe(wrap, {childList:true, subtree:true});
+    markCardKVs();
+  }
+
+  function fixTfootColspan(){
+    const tbl = document.getElementById('tbl');
+    if(!tbl || !tbl.tFoot || !tbl.tFoot.rows.length) return;
+    const firstCell = tbl.tFoot.rows[0].cells[0];
+    if(!firstCell) return;
+    if(baseTfootColspan == null){
+      baseTfootColspan = parseInt(firstCell.getAttribute('data-base-colspan') || firstCell.colSpan || 0, 10);
+      if(!baseTfootColspan) baseTfootColspan = firstCell.colSpan || 0;
+      firstCell.setAttribute('data-base-colspan', String(baseTfootColspan));
+    }
+    const hide = document.body.classList.contains('hide-cg');
+    const next = Math.max(1, baseTfootColspan - (hide ? COLS_HIDDEN : 0));
+    if(firstCell.colSpan !== next) firstCell.colSpan = next;
+  }
+
+  function applyHideState(checked){
+    document.body.classList.toggle('hide-cg', checked);
+    try { localStorage.setItem(LS_KEY, checked ? '1' : '0'); } catch(e){}
+    fixTfootColspan();
+  }
+
+  function bootHideCG(){
+    const initial = (localStorage.getItem(LS_KEY) === '1');
+    const cb = document.getElementById('toggleHideCG');
+    if(cb){
+      cb.checked = initial;
+      cb.addEventListener('change', () => applyHideState(cb.checked));
+    }
+    observeCardsWrap();
+    applyHideState(initial);
+  }
+
+  document.addEventListener('DOMContentLoaded', bootHideCG);
+})();
+</script>
+
+
+<script>
+// === Column tagging for 'Kelas' and 'Group' so headers also hide ===
+(function(){
+  function findHeaderIndexByText(tbl, label) {
+    const thead = tbl && tbl.tHead;
+    if (!thead) return -1;
+    const row = thead.rows[0];
+    if (!row) return -1;
+    label = String(label || '').trim().toLowerCase();
+    for (let i=0; i<row.cells.length; i++) {
+      const t = (row.cells[i].textContent || '').trim().toLowerCase();
+      if (t === label) return i; // zero-based
+    }
+    return -1;
+  }
+
+  function tagColumn(tbl, colIdx, className) {
+    if (!tbl || colIdx < 0) return;
+    // th
+    const th = tbl.tHead && tbl.tHead.rows[0] && tbl.tHead.rows[0].cells[colIdx];
+    if (th) th.classList.add(className);
+    // td
+    const tb = tbl.tBodies && tbl.tBodies[0];
+    if (tb) {
+      for (const tr of tb.rows) {
+        if (tr.cells[colIdx]) tr.cells[colIdx].classList.add(className);
+      }
+    }
+  }
+
+  function tagKelasGroupColumns(){
+    const tbl = document.getElementById('tbl');
+    if(!tbl) return;
+    const idxKelas = findHeaderIndexByText(tbl, 'kelas');
+    const idxGroup = findHeaderIndexByText(tbl, 'group');
+    tagColumn(tbl, idxKelas, 'col-kelas');
+    tagColumn(tbl, idxGroup, 'col-group');
+  }
+
+  // Run once on DOM ready, and again if you re-render the table.
+  document.addEventListener('DOMContentLoaded', tagKelasGroupColumns);
+  // Expose for manual re-tagging after rerender()
+  window._tagKelasGroupColumns = tagKelasGroupColumns;
+})();
+</script>
+
+
+<script>
+// Aggressive tagging: any TH (or columnheader-like node) with exact text 'kelas' or 'group' gets hide-cg-el
+(function(){
+  const labels = new Set(['kelas','group']);
+
+  function tagHeaderNodes(root=document){
+    // 1) Tag all <th> that match
+    root.querySelectorAll('th').forEach(th => {
+      const t = (th.textContent || '').trim().toLowerCase();
+      if(labels.has(t)) th.classList.add('hide-cg-el');
+    });
+    // 2) Tag elements that look like header cells
+    root.querySelectorAll('[role="columnheader"], .table-header *, .thead *, .header-cell, .th').forEach(el => {
+      const t = (el.textContent || '').trim().toLowerCase();
+      if(labels.has(t)) el.classList.add('hide-cg-el');
+    });
+    // 3) If there are duplicated sticky headers implemented as a separate table/div:
+    //    Also tag any element with data-col-name or aria-label
+    root.querySelectorAll('[data-col-name], [aria-label]').forEach(el => {
+      const v = (el.getAttribute('data-col-name') || el.getAttribute('aria-label') || '').trim().toLowerCase();
+      if(labels.has(v)) el.classList.add('hide-cg-el');
+    });
+  }
+
+  // Run now and observe further mutations (render reflows)
+  document.addEventListener('DOMContentLoaded', () => {
+    tagHeaderNodes(document);
+    const mo = new MutationObserver(muts => {
+      for(const m of muts){
+        if(m.addedNodes && m.addedNodes.length){
+          m.addedNodes.forEach(n => {
+            if(n.nodeType === 1) tagHeaderNodes(n);
+          });
+        }
+      }
+    });
+    mo.observe(document.body, {childList:true, subtree:true});
+  });
+
+  // Expose for manual call after your rerender()
+  window._tagHideCGHeaders = tagHeaderNodes;
+})();
+</script>
+
+
+<script>
+  // === Periode Tanggal (sink to active item storage) ===
+  function bootPeriodUI(){
+    try{
+      var s = document.getElementById('periodStart');
+      var e = document.getElementById('periodEnd');
+      if(!s || !e) return;
+      syncPeriodInputs();
+      function pushPeriod(){
+        updatePeriod(s.value || '', e.value || '');
+      }
+      s.addEventListener('change', pushPeriod);
+      s.addEventListener('input', pushPeriod);
+      e.addEventListener('change', pushPeriod);
+      e.addEventListener('input', pushPeriod);
+    }catch(_){}
+  }
+  // hook into existing boot flows after DOM ready
+  (function(){
+    if (document.readyState === 'complete' || document.readyState === 'interactive'){
+      setTimeout(bootPeriodUI, 0);
+    } else {
+      document.addEventListener('DOMContentLoaded', bootPeriodUI);
+    }
+  })();
+  // ensure saveAll also persists (in case user expects "Simpan" to include periode)
+  try{
+    var _origSaveAll = window.saveAll;
+    window.saveAll = function(){
+      try{
+        var s = document.getElementById('periodStart');
+        var e = document.getElementById('periodEnd');
+        if(s && e){
+          updatePeriod(s.value || '', e.value || '');
+          flushAutosaveNow();
+        }
+      }catch(_){}
+      if(typeof _origSaveAll === 'function'){ return _origSaveAll.apply(this, arguments); }
+    };
+  }catch(_){}
+</script>
+
+<script>
+(function(){
+  // Utilities
+  function fmt(n){ return (n<10?'0':'') + n; }
+  function toYMD(d){ return d.getFullYear() + '-' + fmt(d.getMonth()+1) + '-' + fmt(d.getDate()); }
+  function parseYMD(s){
+    if(!s) return null;
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if(!m) return null;
+    var y = +m[1], mo = +m[2]-1, da = +m[3];
+    var d = new Date(y,mo,da);
+    if(d.getFullYear()===y && d.getMonth()===mo && d.getDate()===da) return d;
+    return null;
+  }
+
+  let openCal = null;
+
+  function buildCalendar(targetInput){
+    closeCalendar();
+    const existing = document.querySelector('.mini-cal');
+    if(existing) existing.remove();
+
+    const rect = targetInput.getBoundingClientRect();
+    const root = document.createElement('div');
+    root.className = 'mini-cal';
+
+    // Position near input
+    const top = window.scrollY + rect.bottom + 6;
+    const left = window.scrollX + rect.left;
+    root.style.top = top + 'px';
+    root.style.left = left + 'px';
+
+    // State
+    const today = new Date();
+    let current = parseYMD(targetInput.value) || new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // Renderers
+    function render(){
+      root.innerHTML = '';
+      const header = document.createElement('header');
+      const title = document.createElement('div');
+      title.textContent = current.toLocaleString('id-ID', { month:'long', year:'numeric' });
+      const nav = document.createElement('div'); nav.className='nav';
+      const prev = document.createElement('button'); prev.textContent = '‹';
+      const next = document.createElement('button'); next.textContent = '›';
+      prev.onclick = function(){ current = new Date(current.getFullYear(), current.getMonth()-1, 1); render(); };
+      next.onclick = function(){ current = new Date(current.getFullYear(), current.getMonth()+1, 1); render(); };
+      nav.append(prev, next);
+      header.append(title, nav);
+      root.append(header);
+
+      const grid = document.createElement('div'); grid.className = 'grid';
+      // DOW: Senin (S), Selasa (S), Rabu (R), Kamis (K), Jumat (J), Sabtu (S), Minggu (M)
+      ['S','S','R','K','J','S','M'].forEach(function(lab){
+        const el = document.createElement('div'); el.className='dow'; el.textContent=lab; grid.append(el);
+      });
+      const firstDow = (new Date(current.getFullYear(), current.getMonth(), 1).getDay()+6)%7; // Monday=0
+      const daysInMonth = new Date(current.getFullYear(), current.getMonth()+1, 0).getDate();
+      const prevMonthDays = new Date(current.getFullYear(), current.getMonth(), 0).getDate();
+
+      // Fill previous month overflow
+      for(let i=0;i<firstDow;i++){
+        const d = document.createElement('div'); d.className='day out';
+        d.textContent = (prevMonthDays-firstDow+1+i);
+        d.onclick = function(){
+          const dt = new Date(current.getFullYear(), current.getMonth()-1, (prevMonthDays-firstDow+1+i));
+          pick(dt);
+        };
+        grid.append(d);
+      }
+      // Fill current month
+      for(let day=1; day<=daysInMonth; day++){
+        const d = document.createElement('div'); d.className='day';
+        d.textContent = day;
+        const dt = new Date(current.getFullYear(), current.getMonth(), day);
+        if (toYMD(dt) === toYMD(today)) d.classList.add('today');
+        d.onclick = function(){ pick(dt); };
+        grid.append(d);
+      }
+      // Fill next month overflow to complete grid rows
+      const totalCells = firstDow + daysInMonth;
+      const nextCount = (7 - (totalCells % 7)) % 7;
+      for(let i=1;i<=nextCount;i++){
+        const d = document.createElement('div'); d.className='day out';
+        d.textContent = i;
+        d.onclick = function(){
+          const dt = new Date(current.getFullYear(), current.getMonth()+1, i);
+          pick(dt);
+        };
+        grid.append(d);
+      }
+
+      root.append(grid);
+
+      const footer = document.createElement('div'); footer.className='footer';
+      const btnToday = document.createElement('button'); btnToday.textContent='Hari ini';
+      const btnClear = document.createElement('button'); btnClear.textContent='Hapus';
+      btnToday.onclick = function(){ pick(today); };
+      btnClear.onclick = function(){ targetInput.value=''; targetInput.dispatchEvent(new Event('change')); closeCalendar(); };
+      footer.append(btnToday, btnClear);
+      root.append(footer);
+    }
+
+    function pick(dateObj){
+      targetInput.value = toYMD(dateObj);
+      targetInput.dispatchEvent(new Event('change'));
+      closeCalendar();
+    }
+
+    function closeCalendar(){
+      const el = document.querySelector('.mini-cal');
+      if(el) el.remove();
+      openCal = null;
+      document.removeEventListener('click', onDocClick, true);
+      window.removeEventListener('resize', onWinResize, true);
+      window.removeEventListener('scroll', onWinResize, true);
+    }
+
+    function onDocClick(e){
+      const root = document.querySelector('.mini-cal');
+      if(root && root.contains(e.target)) return;
+      if(e.target === targetInput) return;
+      const btn = document.querySelector('.cal-btn[data-cal-for="'+targetInput.id+'"]');
+      if(btn && btn.contains(e.target)) return;
+      closeCalendar();
+    }
+    function onWinResize(){ closeCalendar(); }
+
+    document.body.appendChild(root);
+    render();
+    openCal = { close: closeCalendar };
+
+    setTimeout(function(){
+      document.addEventListener('click', onDocClick, true);
+      window.addEventListener('resize', onWinResize, true);
+      window.addEventListener('scroll', onWinResize, true);
+    }, 0);
+  }
+
+  function attachCalendar(id){
+    const input = document.getElementById(id);
+    if(!input) return;
+    input.addEventListener('focus', function(){
+      buildCalendar(input);
+    });
+    const btn = document.querySelector('.cal-btn[data-cal-for="'+id+'"]');
+    if(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        buildCalendar(input);
+      });
+    }
+  }
+
+  function bootMiniCal(){
+    attachCalendar('periodStart');
+    attachCalendar('periodEnd');
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+    setTimeout(bootMiniCal, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', bootMiniCal);
+  }
+})();
+</script>
+<!-- Injected: Weekly summary save + auto-close on Save -->
+<script>
+(function(){
+  const KEY_HISTORY='upah20_period_history_v2';
+  if (typeof window !== 'undefined' && window.__upahLastSnapshotMeta === undefined){ window.__upahLastSnapshotMeta = null; }
+  function loadJSON(k, d){ try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;} }
+  function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){ } }
+  function computeTotals(){
+    const rowsSrc = Array.isArray(activeItem && activeItem.rows) ? activeItem.rows : [];
+    const ratesSrc = (activeItem && activeItem.classRates) ? activeItem.classRates : classRates;
+    const thr = Number(activeItem && activeItem.allowanceThreshold !== undefined ? activeItem.allowanceThreshold : allowanceThreshold);
+    const amt = Number(activeItem && activeItem.allowanceAmount !== undefined ? activeItem.allowanceAmount : allowanceAmount);
+    let pekerja=0,sumHari=0,sumPokok=0,sumBeras=0,sumBonus=0,sumTotal=0;
+    for(const r of rowsSrc){
+      const rate=Number(ratesSrc[r.kelas]||0);
+      const hari=(r.rumah||[]).reduce((a,b)=>{ if(!b) return a; const half=(b==='1/2 Lain') || /^\s*1\/2\s+/.test(b); return a+(half?0.5:1); },0);
+      const pokok=hari*rate, beras=(hari>thr?amt:0), bonus=Number((r.bonus??'').toString().replace(/[^\d]/g,''))||0;
+      pekerja++; sumHari+=hari; sumPokok+=pokok; sumBeras+=beras; sumBonus+=bonus; sumTotal+=pokok+beras+bonus;
+    }
+    return {pekerja,sumHari,sumPokok,sumBeras,sumBonus,sumTotal};
+  }
+  function toISO(d){const x=new Date(d); return isNaN(x)?'':x.toISOString().slice(0,10);}
+  function addDays(s,n){const d=new Date(s); d.setDate(d.getDate()+n); return toISO(d);}
+  function saveWeeklyToHistory(extraMeta){
+    const meta = (extraMeta && typeof extraMeta === 'object') ? extraMeta : null;
+    const start = activeItem ? (activeItem.periode || '') : '';
+    const end = activeItem ? (activeItem.sd || (start ? addDays(start,6) : '')) : '';
+    if(!start) return null;
+    const t=computeTotals();
+    const arr=loadJSON(KEY_HISTORY,[]);
+    const idx=arr.findIndex(x=>x && x.periodeMulai===start);
+    const prev = idx>=0 ? (arr[idx] || {}) : {};
+    const rec={
+      ...prev,
+      periodeMulai:start,
+      periodeSelesai:end,
+      pekerja:t.pekerja,
+      sumHari:Math.round(t.sumHari*10)/10,
+      sumPokok:t.sumPokok,
+      sumBeras:t.sumBeras,
+      sumBonus:t.sumBonus,
+      sumTotal:t.sumTotal,
+      ts:Date.now()
+    };
+
+    const hasField = (target, field) => !!target && Object.prototype.hasOwnProperty.call(target, field);
+
+    if (hasField(meta,'snapshotKey')){
+      if (meta.snapshotKey !== undefined) rec.snapshotKey = meta.snapshotKey;
+    } else if (prev.snapshotKey !== undefined && rec.snapshotKey === undefined){
+      rec.snapshotKey = prev.snapshotKey;
+    }
+
+    if (hasField(meta,'snapshotCreatedAt')){
+      if (meta.snapshotCreatedAt !== undefined) rec.snapshotCreatedAt = meta.snapshotCreatedAt;
+    } else if (prev.snapshotCreatedAt !== undefined && rec.snapshotCreatedAt === undefined){
+      rec.snapshotCreatedAt = prev.snapshotCreatedAt;
+    }
+
+    if (prev.hist !== undefined && rec.hist === undefined){ rec.hist = prev.hist; }
+
+    if (hasField(meta,'hasSnap')){
+      rec.hasSnap = Boolean(meta.hasSnap);
+    } else if (rec.snapshotKey){
+      rec.hasSnap = true;
+    } else if (prev.hasSnap !== undefined && rec.hasSnap === undefined){
+      rec.hasSnap = prev.hasSnap;
+    } else if (rec.hasSnap === undefined && prev.hist){
+      rec.hasSnap = true;
+    }
+
+    if(idx>=0) arr[idx]=rec; else arr.push(rec);
+    saveJSON(KEY_HISTORY, arr);
+    return rec;
+  }
+  window.__saveWeeklyToHistory = saveWeeklyToHistory;
+  // Patch saveAll if exists
+  const _orig=window.saveAll;
+  window.saveAll=async function(...args){
+    let res;
+    try{ if(typeof _orig==='function') res = await _orig.apply(this, args); }catch(e){}
+    try{ saveWeeklyToHistory(window.__upahLastSnapshotMeta); }catch(e){}
+    setTimeout(function(){ try{window.close();}catch(_){}
+      setTimeout(function(){ try{window.location.replace('about:blank');}catch(_){} },200);
+    },150);
+    return res;
+  };
+  // Robust hook for any "Simpan" button
+  window.addEventListener('DOMContentLoaded', function(){
+    const btns=Array.from(document.querySelectorAll('button,[role="button"]')).filter(b=>/simpan/i.test(b.textContent||''));
+    btns.forEach(b=>b.addEventListener('click', ()=>{
+      setTimeout(()=>{ try{ saveWeeklyToHistory(window.__upahLastSnapshotMeta); }catch(_){ } },100);
+      setTimeout(()=>{try{window.close();}catch(_){}} ,250);
+    }, {capture:true}));
+  });
+  // Auto "Kosongkan" when ?new=N
+  (function(){
+    const p=new URLSearchParams(location.search); const hasNew=p.has('new')||(location.hash||'').toLowerCase().includes('new');
+    if(!hasNew) return;
+    function tryFns(){ for(const n of ['kosongkan','clearAll','resetAll','resetForm']){ const f=window[n]; if(typeof f==='function'){ const c=window.confirm; window.confirm=()=>true; try{f();} finally{window.confirm=c;} return true; } } return false; }
+    function tryBtns(){ const c=Array.from(document.querySelectorAll('button,[role="button"],a')).filter(el=>/\b(kosongkan|hapus\s*semua|clear)\b/i.test(el.textContent||'')); if(c.length){ const C=window.confirm; window.confirm=()=>true; try{c[0].click();} finally{window.confirm=C;} return true; } return false; }
+    window.addEventListener('DOMContentLoaded', ()=>{ setTimeout(()=>{ if(!tryFns()) tryBtns(); }, 350); }, {once:true});
+  })();
+})();
+</script>
+
+<!-- Injected by ChatGPT: Auto-fill 's/d' = start + 6 hari (7 hari inklusif) -->
+<script>
+(function(){
+  function toISO(d){ const x=new Date(d); return isNaN(x)?'':x.toISOString().slice(0,10); }
+  function addDays(s,n){ const d=new Date(s); if(isNaN(d)) return ''; d.setDate(d.getDate()+n); return toISO(d); }
+  function wirePeriodAutoEnd(){
+    var ps = document.getElementById('periodStart');
+    var pe = document.getElementById('periodEnd');
+    if(!ps || !pe) return;
+    function update(){
+      const start = ps.value;
+      if(!start){ pe.value=''; return; }
+      // +6 hari → periode 7 hari inklusif
+      const end = addDays(start, 6);
+      if (end) pe.value = end;
+    }
+    ps.addEventListener('change', update);
+    ps.addEventListener('input', update);
+    // Prefill on load if start ada & end kosong
+    if (ps.value && (!pe.value || pe.value < ps.value)) update();
+  }
+  window.addEventListener('DOMContentLoaded', function(){ setTimeout(wirePeriodAutoEnd, 50); }, {once:true});
+})();
+</script>
+
+
+<!-- Injected by ChatGPT: Per-periode snapshot save & restore (?hist=YYYY-MM-DD) -->
+<script>
+(function(){
+  const KEY_HISTORY='upah20_period_history_v2';
+  const SNAP_PREFIX='upah20_period_rows_v1:'; // + periodeMulai
+
+  function loadJSON(k, d){ try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;} }
+  function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){ } }
+
+  function extractSnapshotDataFromHtml(html){
+    if (typeof html !== 'string') return null;
+    const match = html.match(/window.__UPAH_DATA__\s*=\s*(\{[\s\S]*?\});/);
+    if (!match) return null;
+    try { return JSON.parse(match[1]); }
+    catch (err){ console.warn('Restore snapshot: gagal parsing data HTML', err); return null; }
+  }
+
+  function extractSnapshotMetaFromHtml(html){
+    if (typeof html !== 'string') return null;
+    const match = html.match(/<!--\s*snapshot-meta:([^>]+)-->/i);
+    if (!match) return null;
+    try {
+      const decoded = decodeURIComponent(match[1]);
+      const parsed = JSON.parse(decoded);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (err){
+      console.warn('Restore snapshot: gagal parsing meta HTML', err);
+      return null;
+    }
+  }
+
+  function persistLocalSnapshot(start, end, dataset, meta){
+    if (!start) return;
+    try {
+      const record = {
+        rows: Array.isArray(dataset.rows) ? structuredClone(dataset.rows) : [],
+        rates: dataset.classRates && typeof dataset.classRates === 'object' ? structuredClone(dataset.classRates) : {},
+        rumah: Array.isArray(dataset.rumah) ? structuredClone(dataset.rumah) : undefined,
+        thr: Number(dataset.allowanceThreshold ?? dataset.thr ?? allowanceThreshold ?? 3.9),
+        amt: Number(dataset.allowanceAmount ?? dataset.amt ?? allowanceAmount ?? 20000),
+        periodeMulai: start,
+        periodeSelesai: end || '',
+        ts: Date.now(),
+        snapshotKey: meta && meta.snapshotKey ? meta.snapshotKey : undefined,
+        snapshotCreatedAt: meta && meta.snapshotCreatedAt ? meta.snapshotCreatedAt : undefined,
+        snapshotUpdatedAt: meta && meta.snapshotUpdatedAt ? meta.snapshotUpdatedAt : undefined,
+      };
+      if (record.rumah === undefined) delete record.rumah;
+      saveJSON(SNAP_PREFIX + start, record);
+    } catch (err){
+      console.warn('Restore snapshot: gagal menyimpan cache lokal', err);
+    }
+  }
+
+  async function fetchSnapshotByKey(snapshotKey){
+    if (!snapshotKey) return null;
+    let client;
+    try {
+      client = await ensureApiClient();
+    } catch (err){
+      console.warn('Restore snapshot: gagal menyiapkan API client', err);
+      return null;
+    }
+    if (!client || typeof client.createRequest !== 'function') return null;
+
+    let requestConfig;
+    try {
+      requestConfig = client.createRequest('item', { method: 'GET', query: { key: snapshotKey } });
+    } catch (err){
+      console.warn('Restore snapshot: gagal membuat konfigurasi request', err);
+      return null;
+    }
+
+    const init = { ...requestConfig.init, cache: 'no-store' };
+
+    try {
+      const response = await fetch(requestConfig.url, init);
+      if (!response.ok){
+        console.warn('Restore snapshot: respons server tidak OK', response.status, response.statusText);
+        return null;
+      }
+      const payload = await response.json().catch(() => null);
+      if (!payload || payload.ok === false || !payload.item){
+        console.warn('Restore snapshot: payload snapshot tidak valid');
+        return null;
+      }
+      const item = payload.item || {};
+      const html = typeof item.html === 'string' ? item.html : '';
+      const dataset = extractSnapshotDataFromHtml(html);
+      if (!dataset){
+        console.warn('Restore snapshot: data snapshot kosong');
+        return null;
+      }
+      const htmlMeta = extractSnapshotMetaFromHtml(html) || {};
+      const mergedMeta = {
+        ...(item.meta && typeof item.meta === 'object' ? item.meta : {}),
+        ...(htmlMeta && typeof htmlMeta === 'object' ? htmlMeta : {}),
+      };
+      const periodMeta = mergedMeta && typeof mergedMeta.period === 'object' ? mergedMeta.period : null;
+      const periodStart = periodMeta && typeof periodMeta.start === 'string' ? periodMeta.start : '';
+      const periodEnd = periodMeta && typeof periodMeta.end === 'string' ? periodMeta.end : '';
+      return {
+        dataset,
+        periodStart: periodStart || '',
+        periodEnd: periodEnd || '',
+        snapshotKey: item.snapshotKey || snapshotKey,
+        snapshotCreatedAt: item.createdAt || mergedMeta.createdAt || mergedMeta.generatedAt || null,
+        snapshotUpdatedAt: item.updatedAt || mergedMeta.updatedAt || null,
+        meta: mergedMeta,
+      };
+    } catch (err){
+      console.warn('Restore snapshot: gagal memuat snapshot dari server', err);
+      return null;
+    }
+  }
+
+  function applySnapshotDataset(payload, opts){
+    if (!payload || !payload.dataset || !activeItem) return false;
+    const options = opts && typeof opts === 'object' ? opts : {};
+    const dataset = payload.dataset;
+    const rowsData = Array.isArray(dataset.rows) ? structuredClone(dataset.rows) : [];
+    const ratesData = dataset.classRates && typeof dataset.classRates === 'object'
+      ? structuredClone(dataset.classRates)
+      : (dataset.rates && typeof dataset.rates === 'object' ? structuredClone(dataset.rates) : cloneDefaultRates());
+    const rumahData = Array.isArray(dataset.rumah) ? structuredClone(dataset.rumah) : null;
+    const thresholdRaw = dataset.allowanceThreshold ?? dataset.thr;
+    const amountRaw = dataset.allowanceAmount ?? dataset.amt;
+
+    activeItem.rows = rows = rowsData;
+    activeItem.classRates = classRates = ratesData;
+    if (rumahData){
+      activeItem.rumah = rumah = rumahData;
+    } else {
+      rumah = activeItem.rumah = Array.isArray(activeItem.rumah) ? activeItem.rumah : cloneDefaultRumah();
+    }
+
+    const threshold = Number.isFinite(Number(thresholdRaw)) ? Number(thresholdRaw) : (activeItem.allowanceThreshold ?? 3.9);
+    const amount = Number.isFinite(Number(amountRaw)) ? Number(amountRaw) : (activeItem.allowanceAmount ?? 20000);
+    activeItem.allowanceThreshold = allowanceThreshold = threshold;
+    activeItem.allowanceAmount = allowanceAmount = amount;
+
+    const periodStart = options.periodStart || payload.periodStart || dataset.periodeMulai || '';
+    const periodEnd = options.periodEnd || payload.periodEnd || dataset.periodeSelesai || '';
+
+    if (periodStart || periodEnd){
+      updatePeriod(periodStart || '', periodEnd || '', { skipAutosave: true });
+    }
+    syncPeriodInputs();
+
+    rows.forEach(r=>{ if(r && r.bonus===undefined) r.bonus=''; });
+
+    bootRatesUI();
+    renderRumah();
+    bootBerasUI();
+    rerender();
+
+    save('classRates', classRates);
+    save('rumah', rumah);
+    save('rows', rows);
+    scheduleAutosave('allowance');
+
+    const meta = payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
+    const snapshotMeta = {
+      snapshotKey: payload.snapshotKey || null,
+      snapshotCreatedAt: payload.snapshotCreatedAt || null,
+      snapshotUpdatedAt: payload.snapshotUpdatedAt || null,
+      hasSnap: Boolean(payload.snapshotKey),
+      meta,
+    };
+    window.__upahLastSnapshotMeta = snapshotMeta;
+
+    if (typeof window.__saveWeeklyToHistory === 'function'){
+      try {
+        window.__saveWeeklyToHistory({
+          snapshotKey: payload.snapshotKey || null,
+          snapshotCreatedAt: payload.snapshotCreatedAt || null,
+          hasSnap: Boolean(payload.snapshotKey),
+        });
+      } catch (err){
+        console.warn('Restore snapshot: gagal memperbarui history', err);
+      }
+    }
+
+    const cacheKey = periodStart || (options.periodStart || '');
+    if (cacheKey){
+      persistLocalSnapshot(cacheKey, periodEnd || '', {
+        rows,
+        classRates,
+        rumah,
+        allowanceThreshold: threshold,
+        allowanceAmount: amount,
+      }, snapshotMeta);
+    }
+
+    return true;
+  }
+
+  // 1) Extend weekly save to also snapshot raw rows & settings
+  (function extendSave(){
+    const _origSaveAll = window.saveAll;
+    window.saveAll = async function(...args){
+      let res;
+      try { if (typeof _origSaveAll === 'function') res = await _origSaveAll.apply(this, args); } catch(e){}
+      try {
+        const start = activeItem ? (activeItem.periode || '') : '';
+        if(!start) return res;
+        const payload = {
+          rows: Array.isArray(activeItem && activeItem.rows) ? activeItem.rows : [],
+          rates: (activeItem && activeItem.classRates) ? activeItem.classRates : {},
+          rumah: Array.isArray(activeItem && activeItem.rumah) ? activeItem.rumah : undefined,
+          thr: Number(activeItem && activeItem.allowanceThreshold !== undefined ? activeItem.allowanceThreshold : allowanceThreshold),
+          amt: Number(activeItem && activeItem.allowanceAmount !== undefined ? activeItem.allowanceAmount : allowanceAmount),
+          periodeMulai: start,
+          periodeSelesai: activeItem ? (activeItem.sd || '') : '',
+          ts: Date.now(),
+        };
+        if (payload.rumah === undefined) delete payload.rumah;
+        saveJSON(SNAP_PREFIX + start, payload);
+
+        const meta = (window.__upahLastSnapshotMeta && typeof window.__upahLastSnapshotMeta === 'object') ? window.__upahLastSnapshotMeta : null;
+        if (typeof window.__saveWeeklyToHistory === 'function'){
+          if (meta){
+            window.__saveWeeklyToHistory({ ...meta, hasSnap: true });
+          } else {
+            window.__saveWeeklyToHistory({ snapshotKey: null, snapshotCreatedAt: null, hasSnap: false });
+          }
+        } else {
+          const hist = loadJSON(KEY_HISTORY, []);
+          const idx = hist.findIndex(x => x && x.periodeMulai === start);
+          if (idx >= 0){
+            const prev = hist[idx] || {};
+            if (meta){
+              hist[idx] = {
+                ...prev,
+                hasSnap: true,
+                snapshotKey: meta.snapshotKey !== undefined ? meta.snapshotKey : prev.snapshotKey,
+                snapshotCreatedAt: meta.snapshotCreatedAt !== undefined ? meta.snapshotCreatedAt : prev.snapshotCreatedAt
+              };
+            } else {
+              hist[idx] = {
+                ...prev,
+                hasSnap: false,
+                snapshotKey: null,
+                snapshotCreatedAt: null
+              };
+            }
+            saveJSON(KEY_HISTORY, hist);
+          }
+        }
+      } catch(e){ console.warn('Snapshot save failed', e); }
+      return res;
+    };
+  })();
+
+  // 2) Restore snapshot via ?snapshot=<key> atau fallback ?hist=YYYY-MM-DD
+  (async function maybeRestore(){
+    const params = new URLSearchParams(location.search);
+    const snapshotParamRaw = params.get('snapshot') || params.get('snapshotKey') || params.get('snap') || params.get('key');
+    const histStartRaw = params.get('hist');
+    const snapshotParam = snapshotParamRaw ? snapshotParamRaw.trim() : '';
+    const histStart = histStartRaw ? histStartRaw.trim() : '';
+
+    if (!snapshotParam && !histStart) return;
+
+    if (snapshotParam){
+      const remote = await fetchSnapshotByKey(snapshotParam);
+      if (remote && applySnapshotDataset(remote, { periodStart: remote.periodStart || histStart, periodEnd: remote.periodEnd })){
+        return;
+      }
+    }
+
+    if (!histStart) return;
+
+    const snap = loadJSON(SNAP_PREFIX + histStart, null);
+    if (snap){
+      const payload = {
+        dataset: {
+          rows: Array.isArray(snap.rows) ? snap.rows : [],
+          classRates: snap.rates && typeof snap.rates === 'object' ? snap.rates : null,
+          rumah: Array.isArray(snap.rumah) ? snap.rumah : null,
+          allowanceThreshold: snap.thr,
+          allowanceAmount: snap.amt,
+          periodeMulai: snap.periodeMulai || histStart || '',
+          periodeSelesai: snap.periodeSelesai || '',
+        },
+        periodStart: snap.periodeMulai || histStart || '',
+        periodEnd: snap.periodeSelesai || '',
+        snapshotKey: snap.snapshotKey || null,
+        snapshotCreatedAt: snap.snapshotCreatedAt || null,
+        snapshotUpdatedAt: snap.snapshotUpdatedAt || null,
+        meta: {},
+      };
+      if (applySnapshotDataset(payload, { periodStart: payload.periodStart, periodEnd: payload.periodEnd })){
+        return;
+      }
+    }
+
+    const history = loadJSON(KEY_HISTORY, []);
+    const match = Array.isArray(history) ? history.find(x => x && x.periodeMulai === histStart) : null;
+    if (match && match.snapshotKey){
+      const remote = await fetchSnapshotByKey(match.snapshotKey);
+      if (remote){
+        const periodEnd = remote.periodEnd || match.periodeSelesai || '';
+        if (applySnapshotDataset(remote, { periodStart: histStart, periodEnd })){
+          return;
+        }
+      }
+    }
+  })().catch(err => console.warn('Restore snapshot: gagal memuat data', err));
+})();
+</script>
+
+</body>
+</html>
