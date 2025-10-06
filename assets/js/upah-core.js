@@ -125,29 +125,20 @@ export function ensureApiClient() {
 }
 
 export function sanitizeKeyPart(part = '') {
-  return String(part || '')
+  if (part === null || part === undefined) {
+    return '';
+  }
+  return String(part)
     .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9_-]/g, '');
+    .replace(/\s+/g, '-');
 }
 
 export function buildSnapshotKey({ start = '', end = '', rumah = '', uuid } = {}) {
-  const cleanStart = sanitizeKeyPart(start);
-  const cleanEnd = sanitizeKeyPart(end);
-  const cleanRumah = sanitizeKeyPart(rumah);
+  const ps = sanitizeKeyPart(start);
+  const pe = sanitizeKeyPart(end);
+  const rm = sanitizeKeyPart(rumah);
   const id = uuid || utils.uuid();
-
-  const segments = ['ut', 'snap'];
-  if (cleanStart) segments.push(cleanStart);
-  if (cleanEnd) segments.push(cleanEnd);
-  if (cleanRumah) segments.push(cleanRumah);
-
-  if (segments.length === 2) {
-    return `snap:${id}`;
-  }
-
-  return `${segments.join(':')}:${id}`;
+  return `ut:snap:${ps}:${pe}:${rm}:${id}`;
 }
 
 export function summarizeRows(rows = [], { classRates = {}, allowanceThreshold = 0, allowanceAmount = 0 } = {}) {
