@@ -24,7 +24,19 @@ export async function onRequest(context) {
   limit = Math.min(Math.max(limit, 1), 200);
 
   try {
-    const listResult = await env.UPAH_KV.list({ prefix, cursor, limit });
+    if (!env.UPAH_KV || typeof env.UPAH_KV.list !== 'function') {
+      throw new Error('Binding UPAH_KV tidak tersedia');
+    }
+
+    const listOptions = { limit };
+    if (prefix) {
+      listOptions.prefix = prefix;
+    }
+    if (cursor) {
+      listOptions.cursor = cursor;
+    }
+
+    const listResult = await env.UPAH_KV.list(listOptions);
     const keys = (listResult.keys || []).map((entry) => ({
       name: entry.name,
       expiration: entry.expiration || null,
@@ -38,6 +50,7 @@ export async function onRequest(context) {
     });
   } catch (err) {
     console.error('api/list error', err);
-    return jsonResponse({ ok: false, error: 'Gagal mengambil daftar' }, 500);
+    const message = err?.message ? `Gagal mengambil daftar: ${err.message}` : 'Gagal mengambil daftar';
+    return jsonResponse({ ok: false, error: message }, 500);
   }
 }
