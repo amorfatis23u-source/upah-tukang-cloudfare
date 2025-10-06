@@ -11,10 +11,13 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+import { getKVBinding } from './_kv';
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
+  const { kv } = getKVBinding(env);
 
   try {
     if (method === 'GET') {
@@ -22,7 +25,7 @@ export async function onRequest(context) {
       if (!key) {
         return jsonResponse({ ok: false, error: 'Parameter key wajib' }, 400);
       }
-      const result = await env.UPAH_KV.getWithMetadata(key, { type: 'json' });
+      const result = await kv.getWithMetadata(key, { type: 'json' });
       if (!result || result.value === null || result.value === undefined) {
         return jsonResponse({ ok: false, error: 'Data tidak ditemukan' }, 404);
       }
@@ -59,7 +62,7 @@ export async function onRequest(context) {
       }
       safeMeta.valueSize = stringified.length;
 
-      await env.UPAH_KV.put(key, stringified, { metadata: safeMeta });
+      await kv.put(key, stringified, { metadata: safeMeta });
       return jsonResponse({ ok: true, key, meta: safeMeta });
     }
 
@@ -68,7 +71,7 @@ export async function onRequest(context) {
       if (!key) {
         return jsonResponse({ ok: false, error: 'Parameter key wajib' }, 400);
       }
-      await env.UPAH_KV.delete(key);
+      await kv.delete(key);
       return jsonResponse({ ok: true, key });
     }
 
