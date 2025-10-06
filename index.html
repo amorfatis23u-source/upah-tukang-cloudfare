@@ -102,10 +102,12 @@
     document.getElementById('year').textContent = YEAR;
 
     const state = {
-      cursor: '',
-      prev: [],
+      currentCursor: '',
+      nextCursor: '',
+      history: [],
+      cache: new Map(),
       loading: false,
-      lastCursor: null
+      listComplete: false
     };
 
     const tableBody = document.getElementById('listBody');
@@ -149,49 +151,89 @@
       });
     }
 
-    async function loadList() {
-      if (state.loading) return;
-      try {
-        state.loading = true;
+    function resetPagination() {
+      state.currentCursor = '';
+      state.nextCursor = '';
+      state.listComplete = false;
+      state.history = [];
+      state.cache.clear();
+    }
+
+    async function showPage(cursor = '') {
+      if (state.loading) return false;
+      const cached = state.cache.get(cursor);
+      if (!cached) {
         tableBody.innerHTML = '';
         skeleton.classList.remove('hidden');
-        emptyState.classList.add('hidden');
         listInfo.textContent = 'Memuat data...';
-        const { keys = [], cursor, list_complete } = await api.list('ut:snap:', state.cursor, 15);
+      } else {
         skeleton.classList.add('hidden');
-        if (!keys.length && !state.cursor && !cursor) {
+      }
+      emptyState.classList.add('hidden');
+
+      try {
+        state.loading = true;
+        const payload = cached || await api.list('ut:snap:', cursor, 15);
+        if (!cached) {
+          state.cache.set(cursor, payload);
+        }
+        const { keys = [], cursor: nextCursor = '', list_complete } = payload;
+        skeleton.classList.add('hidden');
+
+        if (!keys.length && !cursor && !nextCursor) {
+          tableBody.innerHTML = '';
           emptyState.classList.remove('hidden');
           listInfo.textContent = 'Belum ada snapshot';
           cursorInfo.textContent = '';
-          return;
+          state.currentCursor = '';
+          state.nextCursor = '';
+          state.listComplete = true;
+          document.getElementById('btnPrev').disabled = true;
+          document.getElementById('btnNext').disabled = true;
+          return true;
         }
+
         renderRows(keys.slice(0, 10));
-        cursorInfo.textContent = list_complete ? 'Sudah halaman terakhir' : (cursor ? `Cursor ${cursor.slice(0, 8)}…` : '');
+        state.currentCursor = cursor;
+        state.nextCursor = nextCursor || '';
+        state.listComplete = !!list_complete || (!state.nextCursor && keys.length < 15);
+
+        cursorInfo.textContent = state.listComplete
+          ? 'Sudah halaman terakhir'
+          : (state.nextCursor ? `Cursor ${state.nextCursor.slice(0, 8)}…` : '');
         listInfo.textContent = `${Math.min(keys.length, 10)} dari ${keys.length} entri halaman ini`;
-        state.lastCursor = cursor || null;
-        document.getElementById('btnPrev').disabled = state.prev.length === 0;
-        document.getElementById('btnNext').disabled = list_complete;
+
+        document.getElementById('btnPrev').disabled = state.history.length === 0;
+        document.getElementById('btnNext').disabled = state.listComplete;
+        return true;
       } catch (err) {
         skeleton.classList.add('hidden');
         emptyState.classList.add('hidden');
         showToast(formatError(err), 'error');
         listInfo.textContent = 'Gagal memuat data';
+        return false;
       } finally {
         state.loading = false;
       }
     }
 
-    document.getElementById('btnPrev').addEventListener('click', () => {
-      if (!state.prev.length) return;
-      state.cursor = state.prev.pop() || '';
-      loadList();
+    document.getElementById('btnPrev').addEventListener('click', async () => {
+      if (!state.history.length) return;
+      const target = state.history[state.history.length - 1];
+      const ok = await showPage(target);
+      if (ok) {
+        state.history.pop();
+      }
     });
 
-    document.getElementById('btnNext').addEventListener('click', () => {
-      if (!state.lastCursor) return;
-      state.prev.push(state.cursor);
-      state.cursor = state.lastCursor;
-      loadList();
+    document.getElementById('btnNext').addEventListener('click', async () => {
+      if (state.listComplete && !state.nextCursor) return;
+      const target = state.nextCursor;
+      const previous = state.currentCursor;
+      const ok = await showPage(target);
+      if (ok) {
+        state.history.push(previous);
+      }
     });
 
     document.addEventListener('click', async (event) => {
@@ -203,7 +245,8 @@
         try {
           await api.deleteData(key);
           showToast('Snapshot dihapus', 'success');
-          loadList();
+          resetPagination();
+          await showPage('');
         } catch (err) {
           showToast(formatError(err), 'error');
         }
@@ -224,7 +267,7 @@
     document.getElementById('btnNew').addEventListener('click', openNewForm);
     document.getElementById('ctaNew').addEventListener('click', openNewForm);
 
-    loadList();
+    showPage('');
   </script>
 </body>
 </html>

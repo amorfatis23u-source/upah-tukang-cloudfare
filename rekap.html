@@ -128,9 +128,8 @@
       page: 1,
       perPage: 20,
       loading: false,
-      lastCursor: null,
-      cursorStack: [],
-      rawKeys: []
+      rawKeys: [],
+      detailCache: new Map()
     };
 
     const tableBody = document.getElementById('tableBody');
@@ -166,6 +165,12 @@
           safety += 1;
           if (res.list_complete || !cursor || safety > 20) break;
         } while (true);
+
+        const keep = new Set(state.rawKeys.map((entry) => entry.name));
+        Array.from(state.detailCache.keys()).forEach((key) => {
+          if (!keep.has(key)) state.detailCache.delete(key);
+        });
+
         await enrichRecords();
         applyFilter();
         showToast('Data rekap diperbarui', 'success');
@@ -180,9 +185,11 @@
     async function enrichRecords() {
       const records = [];
       const needFetch = [];
+
       state.rawKeys.forEach((entry) => {
         const { name, metadata = {} } = entry;
         const parsed = utils.parseSnapshotKey(name);
+        const cached = state.detailCache.get(name);
         const record = {
           key: name,
           start: metadata.start || parsed.start || '',
@@ -193,30 +200,54 @@
           totalDays: metadata.totalDays ?? null,
           meta: metadata
         };
-        if (record.total == null || record.totalDays == null) {
+
+        if (cached) {
+          Object.assign(record, cached);
+        } else if (record.total == null || record.totalDays == null) {
           needFetch.push(record);
         }
+
         records.push(record);
       });
 
       if (needFetch.length) {
-        for (const item of needFetch) {
-          try {
-            const res = await api.loadData(item.key);
-            const rows = res?.value?.rows || [];
-            item.total = utils.sumRows(rows);
-            item.totalDays = utils.sumDays(rows);
-            item.start = res?.value?.start || item.start;
-            item.end = res?.value?.end || item.end;
-            item.rumah = res?.value?.rumah || item.rumah;
-            item.updatedAt = res?.meta?.updatedAt || item.updatedAt;
-          } catch (err) {
-            console.error('gagal load detail', item.key, err);
-            item.total = item.total ?? 0;
-            item.totalDays = item.totalDays ?? 0;
+        const concurrency = Math.min(4, needFetch.length);
+        let index = 0;
+        const workers = Array.from({ length: concurrency }, () => (async () => {
+          while (index < needFetch.length) {
+            const currentIndex = index++;
+            const item = needFetch[currentIndex];
+            if (!item) break;
+            try {
+              const res = await api.loadData(item.key);
+              const rows = res?.value?.rows || [];
+              const detail = {
+                total: utils.sumRows(rows),
+                totalDays: utils.sumDays(rows),
+                start: res?.value?.start || item.start,
+                end: res?.value?.end || item.end,
+                rumah: res?.value?.rumah || item.rumah,
+                updatedAt: res?.meta?.updatedAt || item.updatedAt
+              };
+              Object.assign(item, detail);
+              state.detailCache.set(item.key, {
+                total: detail.total,
+                totalDays: detail.totalDays,
+                start: detail.start,
+                end: detail.end,
+                rumah: detail.rumah,
+                updatedAt: detail.updatedAt
+              });
+            } catch (err) {
+              console.error('gagal load detail', item.key, err);
+              item.total = item.total ?? 0;
+              item.totalDays = item.totalDays ?? 0;
+            }
           }
-        }
+        })());
+        await Promise.all(workers);
       }
+
       state.all = records.sort((a, b) => {
         const dateA = new Date(a.updatedAt || 0).getTime();
         const dateB = new Date(b.updatedAt || 0).getTime();
