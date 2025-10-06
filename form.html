@@ -32,11 +32,11 @@
       <div class="grid gap-4 md:grid-cols-4">
         <label class="flex flex-col gap-1 text-sm">
           <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Periode (Mulai)</span>
-          <input id="start" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" required>
+          <input id="periodStart" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" required>
         </label>
         <label class="flex flex-col gap-1 text-sm">
           <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">s/d (otomatis +6)</span>
-          <input id="end" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-slate-50" readonly>
+          <input id="periodEnd" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-slate-50" readonly>
         </label>
         <label class="flex flex-col gap-1 text-sm">
           <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Rumah</span>
@@ -105,248 +105,300 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
-  <script type="module">
-    import { API, utils, showToast, formatError } from '/assets/js/config.js';
+    <script type="module">
+    import {
+      utils,
+      showToast,
+      formatError,
+      readStorageRoot,
+      createDefaultItem,
+      cloneDefaultRows,
+      bootRatesUI,
+      renderRumah,
+      bootBerasUI,
+      rerender,
+      addWorker,
+      restoreDefaultRows,
+      updatePeriod,
+      syncPeriodInputs,
+      applySnapshotDataset,
+      saveAll,
+      downloadCSV,
+      downloadXLSX,
+      ensureApiClient,
+      collectRows
+    } from '/assets/js/upah-core.js';
 
     const YEAR = new Date().getFullYear();
     document.getElementById('year').textContent = YEAR;
 
-    const tbody = document.getElementById('tbody');
+    const ctx = {
+      state: createDefaultItem({ rows: cloneDefaultRows() }),
+      dom: {
+        periodStart: document.getElementById('periodStart'),
+        periodEnd: document.getElementById('periodEnd'),
+        rumahInput: document.getElementById('rumah'),
+        tbody: document.getElementById('tbody'),
+        totalRows: document.getElementById('totalRows'),
+        totalDays: document.getElementById('totalDays'),
+        totalAmount: document.getElementById('totalAmount')
+      }
+    };
+
     const saveState = document.getElementById('saveState');
     const lastSaved = document.getElementById('lastSaved');
     const offlineBadge = document.getElementById('offline');
+    const hiddenKey = document.getElementById('key');
 
-    const state = {
-      key: '',
-      rows: [],
-      dirty: false,
-      saving: false,
-      loaded: false
-    };
+    ctx.state.dirty = false;
+    ctx.state.saving = false;
+    ctx.state.loaded = false;
 
     function setOffline(isOffline) {
       offlineBadge.classList.toggle('hidden', !isOffline);
     }
 
     function markSaving(pending) {
-      state.saving = pending;
+      ctx.state.saving = pending;
       if (pending) {
         saveState.textContent = 'Menyimpan…';
         saveState.className = 'rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-700';
-      } else {
+      } else if (!ctx.state.dirty) {
         saveState.textContent = 'Tersimpan';
         saveState.className = 'rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700';
+      } else {
+        markDirty();
       }
     }
 
     function markDirty() {
-      state.dirty = true;
-      state.saving = false;
+      ctx.state.dirty = true;
+      ctx.state.saving = false;
       saveState.textContent = 'Draft belum tersimpan';
       saveState.className = 'rounded-full bg-slate-200 px-3 py-1 font-medium text-slate-700';
     }
 
-    function ensureRows() {
-      if (!state.rows.length) {
-        state.rows.push({ nama: '', tarif: 0, hari: 0 });
+    function refreshSummaryFromDom() {
+      const rows = collectRows(ctx);
+      if (ctx.dom.totalRows) {
+        ctx.dom.totalRows.textContent = utils.formatNumber(rows.length);
+      }
+      if (ctx.dom.totalDays) {
+        ctx.dom.totalDays.textContent = utils.formatNumber(utils.sumDays(rows));
+      }
+      if (ctx.dom.totalAmount) {
+        ctx.dom.totalAmount.textContent = utils.formatRupiah(utils.sumRows(rows));
       }
     }
 
-    function renderRows() {
-      ensureRows();
-      tbody.innerHTML = '';
-      state.rows.forEach((row, index) => {
-        const isLocked = state.rows.length === 1;
-        const btnClasses = isLocked
-          ? 'btnDelRow rounded-xl border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-400 opacity-40 cursor-not-allowed'
-          : 'btnDelRow rounded-xl border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300';
-        const tr = document.createElement('tr');
-        tr.dataset.index = index;
-        tr.className = 'transition hover:bg-slate-50';
-        tr.innerHTML = `
-          <td class="py-2 pr-3">
-            <input class="nm w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" value="${row.nama || ''}" placeholder="Nama Tukang">
-          </td>
-          <td class="py-2 pr-3">
-            <input class="tarif w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" type="number" min="0" step="1000" value="${row.tarif ?? 0}" aria-label="Tarif per hari">
-          </td>
-          <td class="py-2 pr-3">
-            <input class="hari w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200" type="number" min="0" max="7" value="${row.hari ?? 0}" aria-label="Jumlah hari kerja">
-          </td>
-          <td class="py-2 pr-3 text-right font-medium text-slate-800">${utils.formatRupiah((Number(row.tarif) || 0) * (Number(row.hari) || 0))}</td>
-          <td class="py-2 pr-3 text-right">
-            <button class="${btnClasses}" ${isLocked ? 'disabled' : ''}>Hapus</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-      refreshSummary();
+    function syncRowsToState() {
+      ctx.state.rows = collectRows(ctx);
     }
 
-    function refreshSummary() {
-      const totalRows = state.rows.length;
-      const totalDays = utils.sumDays(state.rows);
-      const totalAmount = utils.sumRows(state.rows);
-      document.getElementById('totalRows').textContent = utils.formatNumber(totalRows);
-      document.getElementById('totalDays').textContent = utils.formatNumber(totalDays);
-      document.getElementById('totalAmount').textContent = utils.formatRupiah(totalAmount);
-    }
-
-    function collectForm() {
-      const rows = Array.from(tbody.querySelectorAll('tr')).map((tr) => ({
-        nama: tr.querySelector('.nm').value.trim(),
-        tarif: Math.max(0, Number(tr.querySelector('.tarif').value) || 0),
-        hari: Math.max(0, Math.min(7, Number(tr.querySelector('.hari').value) || 0))
-      }));
-      state.rows = rows;
-      const start = document.getElementById('start').value;
-      const end = document.getElementById('end').value;
-      const rumah = document.getElementById('rumah').value.trim();
-      return { start, end, rumah, rows };
-    }
-
-    function validateForm(payload) {
-      if (!payload.start) {
-        throw new Error('Tanggal mulai wajib diisi');
-      }
-      if (Number.isNaN(new Date(payload.start).getTime())) {
-        throw new Error('Tanggal mulai tidak valid');
-      }
-      if (!payload.end || Number.isNaN(new Date(payload.end).getTime())) {
-        throw new Error('Tanggal selesai tidak valid');
-      }
-      payload.rows.forEach((row, idx) => {
-        if ((Number(row.tarif) || 0) < 0) {
-          throw new Error(`Tarif baris ${idx + 1} tidak boleh negatif`);
-        }
-        if ((Number(row.hari) || 0) < 0) {
-          throw new Error(`Hari kerja baris ${idx + 1} tidak boleh negatif`);
-        }
-      });
-    }
-
-    async function persist(manual = false) {
+    async function handleSave(manual = false, { notifyFallback = manual } = {}) {
       try {
-        const payload = collectForm();
-        validateForm(payload);
-        const total = utils.sumRows(payload.rows);
-        const totalDays = utils.sumDays(payload.rows);
-        if (!state.key) {
-          const idFromQuery = new URLSearchParams(window.location.search).get('new') || utils.uuid();
-          const rumahSegment = payload.rumah ? payload.rumah.replace(/:/g, '-').trim() : '';
-          if (payload.start && payload.end) {
-            state.key = `ut:snap:${payload.start}:${payload.end}:${rumahSegment}:${idFromQuery}`;
-          } else {
-            state.key = `ut:snap:${idFromQuery}`;
-          }
-          document.getElementById('key').value = state.key;
-        }
         markSaving(true);
-        const meta = {
-          updatedAt: new Date().toISOString(),
-          start: payload.start,
-          end: payload.end,
-          rumah: payload.rumah,
-          total,
-          totalDays
-        };
-        await API.set(state.key, payload, meta);
-        state.dirty = false;
+        await saveAll(ctx, { manual, notifyFallback });
+        ctx.state.dirty = false;
         markSaving(false);
+        hiddenKey.value = ctx.state.key || '';
         lastSaved.textContent = `Tersimpan ${new Date().toLocaleTimeString('id-ID')}`;
-        if (manual) {
-          showToast('Data berhasil disimpan', 'success');
-        }
       } catch (err) {
-        if (manual) {
-          showToast(formatError(err), 'error');
-        }
+        markSaving(false);
         markDirty();
+        if (!manual) {
+          console.warn('autosave gagal', err);
+        }
         throw err;
       }
     }
 
     const debouncedSave = utils.debounce(() => {
-      if (!state.loaded) return;
+      if (!ctx.state.loaded) return;
       if (!navigator.onLine) {
         markDirty();
         return;
       }
-      persist(false).catch(() => {});
+      syncRowsToState();
+      handleSave(false, { notifyFallback: false }).catch(() => {});
     }, 800);
 
-    document.addEventListener('input', (event) => {
-      if (event.target.matches('#start')) {
-        const end = utils.plusDaysISO(event.target.value, 6);
-        document.getElementById('end').value = end;
+    async function loadFromKey(key) {
+      const api = ensureApiClient();
+      try {
+        markSaving(true);
+        const res = await api.loadData(key);
+        if (!res || !res.value) {
+          throw new Error('Data tidak ditemukan');
+        }
+        ctx.state.key = key;
+        hiddenKey.value = key;
+        applySnapshotDataset(ctx, { ...res.value, key, meta: res.meta || {} });
+        lastSaved.textContent = res.meta?.updatedAt ? `Terakhir ${new Date(res.meta.updatedAt).toLocaleString('id-ID')}` : '—';
+        ctx.state.dirty = false;
+      } catch (err) {
+        showToast(formatError(err), 'error');
+        restoreDefaultRows(ctx);
+      } finally {
+        markSaving(false);
+        ctx.state.loaded = true;
       }
-      if (event.target.closest('table') || event.target.matches('#start') || event.target.matches('#rumah')) {
+    }
+
+    function tryLoadSnapshotParam(param) {
+      if (!param) return false;
+      try {
+        const decoded = JSON.parse(atob(decodeURIComponent(param)));
+        ctx.state.key = decoded.key || ctx.state.key;
+        if (ctx.state.key) hiddenKey.value = ctx.state.key;
+        applySnapshotDataset(ctx, decoded, { persist: true });
+        ctx.state.loaded = true;
+        lastSaved.textContent = decoded?.meta?.updatedAt ? `Terakhir ${new Date(decoded.meta.updatedAt).toLocaleString('id-ID')}` : 'Snapshot dimuat';
+        return true;
+      } catch (err) {
+        console.warn('gagal decode snapshot', err);
+        showToast('Snapshot tidak valid', 'error');
+        return false;
+      }
+    }
+
+    function tryLoadHistory(histKey) {
+      if (!histKey) return false;
+      const root = readStorageRoot();
+      let entry = null;
+      if (root.items[histKey]) {
+        entry = { key: histKey, value: root.items[histKey] };
+      } else {
+        const found = Object.entries(root.items).find(([, item]) => item.periodStart === histKey || item.periodEnd === histKey);
+        if (found) {
+          entry = { key: found[0], value: found[1] };
+        }
+      }
+      if (!entry) return false;
+      ctx.state.key = entry.key;
+      hiddenKey.value = entry.key;
+      applySnapshotDataset(ctx, { ...entry.value, key: entry.key }, { persist: false });
+      ctx.state.loaded = true;
+      lastSaved.textContent = 'Draft lokal dimuat';
+      return true;
+    }
+
+    async function initFromQuery() {
+      bootRatesUI(ctx);
+      bootBerasUI(ctx);
+      renderRumah(ctx);
+      rerender(ctx);
+
+      const params = new URLSearchParams(window.location.search);
+      const keyParam = params.get('key');
+      const snapshotParam = params.get('snapshot');
+      const histParam = params.get('hist');
+      const startParam = params.get('start');
+      const endParam = params.get('end');
+
+      if (window.__UPAH_DATA__) {
+        applySnapshotDataset(ctx, window.__UPAH_DATA__, { persist: false });
+      }
+
+      if (keyParam) {
+        await loadFromKey(keyParam);
+        return;
+      }
+
+      if (snapshotParam && tryLoadSnapshotParam(snapshotParam)) {
+        return;
+      }
+
+      if (histParam && tryLoadHistory(histParam)) {
+        return;
+      }
+
+      const root = readStorageRoot();
+      if (root.lastKey && root.items[root.lastKey]) {
+        ctx.state.key = root.lastKey;
+        hiddenKey.value = ctx.state.key;
+        applySnapshotDataset(ctx, { ...root.items[root.lastKey], key: ctx.state.key }, { persist: false });
+        ctx.state.loaded = true;
+        lastSaved.textContent = 'Draft lokal dimuat';
+        return;
+      }
+
+      const startValue = startParam || utils.todayISO();
+      const endValue = endParam || utils.plusDaysISO(startValue, 6);
+      ctx.state.periodStart = startValue;
+      ctx.state.periodEnd = endValue;
+      syncPeriodInputs(ctx);
+      renderRumah(ctx);
+      rerender(ctx);
+      ctx.state.loaded = true;
+    }
+
+    document.addEventListener('input', (event) => {
+      if (event.target.matches('#periodStart')) {
+        updatePeriod(ctx);
+        syncPeriodInputs(ctx);
         markDirty();
-        refreshSummary();
+        refreshSummaryFromDom();
+        debouncedSave();
+        return;
+      }
+      if (event.target.matches('#rumah')) {
+        markDirty();
+        refreshSummaryFromDom();
+        debouncedSave();
+        return;
+      }
+      if (event.target.closest('table')) {
+        markDirty();
+        refreshSummaryFromDom();
         debouncedSave();
       }
     });
 
-    tbody.addEventListener('click', (event) => {
+    document.getElementById('tbody').addEventListener('click', (event) => {
       if (event.target.matches('.btnDelRow')) {
         event.preventDefault();
         const tr = event.target.closest('tr');
         const index = Number(tr.dataset.index);
-        if (state.rows.length <= 1) {
+        syncRowsToState();
+        if (ctx.state.rows.length <= 1) {
           showToast('Minimal satu baris data', 'warning');
           return;
         }
-        state.rows.splice(index, 1);
-        renderRows();
+        ctx.state.rows.splice(index, 1);
+        rerender(ctx);
         markDirty();
+        refreshSummaryFromDom();
         debouncedSave();
       }
     });
 
     document.getElementById('btnAddRow').addEventListener('click', () => {
-      state.rows.push({ nama: '', tarif: 0, hari: 0 });
-      renderRows();
+      syncRowsToState();
+      addWorker(ctx);
       markDirty();
+      refreshSummaryFromDom();
       debouncedSave();
     });
 
     document.getElementById('btnClear').addEventListener('click', () => {
       if (!window.confirm('Kosongkan tabel? Data tersimpan tidak dihapus.')) return;
-      state.rows = [{ nama: '', tarif: 0, hari: 0 }];
-      renderRows();
+      restoreDefaultRows(ctx);
       markDirty();
+      refreshSummaryFromDom();
     });
 
-    document.getElementById('btnSave').addEventListener('click', async () => {
-      try {
-        await persist(true);
-      } catch (err) {
-        showToast(formatError(err), 'error');
-      }
+    document.getElementById('btnSave').addEventListener('click', () => {
+      syncRowsToState();
+      handleSave(true, { notifyFallback: true }).catch((err) => {
+        console.error('gagal menyimpan manual', err);
+      });
     });
 
     document.getElementById('btnExportXLSX').addEventListener('click', () => {
       try {
-        const payload = collectForm();
-        const rows = payload.rows.map((row, idx) => ({
-          No: idx + 1,
-          Nama: row.nama,
-          Tarif: row.tarif,
-          Hari: row.hari,
-          Total: (Number(row.tarif) || 0) * (Number(row.hari) || 0),
-          Periode: `${payload.start} s/d ${payload.end}`,
-          Rumah: payload.rumah
-        }));
-        const summary = [{
-          Periode: `${payload.start} s/d ${payload.end}`,
-          Rumah: payload.rumah,
-          TotalHari: utils.sumDays(payload.rows),
-          TotalUpah: utils.sumRows(payload.rows)
-        }];
-        utils.toXLSX(`upah_${payload.start || 'periode'}_${payload.rumah || 'umum'}.xlsx`, {
-          'Upah Mingguan': rows,
-          Rekap: summary
-        });
+        syncRowsToState();
+        downloadXLSX(ctx);
         showToast('Berhasil membuat file XLSX', 'success');
       } catch (err) {
         showToast(formatError(err), 'error');
@@ -355,17 +407,8 @@
 
     document.getElementById('btnExportCSV').addEventListener('click', () => {
       try {
-        const payload = collectForm();
-        const rows = payload.rows.map((row, idx) => ({
-          No: idx + 1,
-          Nama: row.nama,
-          Tarif: row.tarif,
-          Hari: row.hari,
-          Total: (Number(row.tarif) || 0) * (Number(row.hari) || 0),
-          Periode: `${payload.start} s/d ${payload.end}`,
-          Rumah: payload.rumah
-        }));
-        utils.toCSV(`upah_${payload.start || 'periode'}_${payload.rumah || 'umum'}.csv`, rows);
+        syncRowsToState();
+        downloadCSV(ctx);
         showToast('Berhasil membuat file CSV', 'success');
       } catch (err) {
         showToast(formatError(err), 'error');
@@ -383,13 +426,14 @@
           if (!parsed.rows.length) {
             throw new Error('File CSV kosong');
           }
-          state.rows = parsed.rows.map((row) => ({
+          ctx.state.rows = parsed.rows.map((row) => ({
             nama: row.Nama || row.nama || '',
             tarif: Number(row.Tarif ?? row.tarif ?? 0) || 0,
             hari: Number(row.Hari ?? row.hari ?? 0) || 0
           }));
-          renderRows();
+          rerender(ctx);
           markDirty();
+          refreshSummaryFromDom();
           debouncedSave();
           showToast('Data CSV dimuat', 'success');
         } catch (err) {
@@ -403,60 +447,16 @@
 
     window.addEventListener('online', () => {
       setOffline(false);
-      if (state.dirty) {
+      if (ctx.state.dirty) {
         debouncedSave();
       }
     });
     window.addEventListener('offline', () => setOffline(true));
 
-    async function loadFromKey(key) {
-      try {
-        markSaving(true);
-        const res = await API.get(key);
-        if (!res || !res.value) {
-          throw new Error('Data tidak ditemukan');
-        }
-        state.key = key;
-        document.getElementById('key').value = key;
-        document.getElementById('start').value = res.value.start || utils.todayISO();
-        document.getElementById('end').value = res.value.end || utils.plusDaysISO(document.getElementById('start').value, 6);
-        document.getElementById('rumah').value = res.value.rumah || '';
-        state.rows = Array.isArray(res.value.rows) && res.value.rows.length ? res.value.rows : [{ nama: '', tarif: 0, hari: 0 }];
-        renderRows();
-        markSaving(false);
-        lastSaved.textContent = res.meta?.updatedAt ? `Terakhir ${new Date(res.meta.updatedAt).toLocaleString('id-ID')}` : '—';
-        state.loaded = true;
-        state.dirty = false;
-      } catch (err) {
-        markSaving(false);
-        showToast(formatError(err), 'error');
-        state.rows = [{ nama: '', tarif: 0, hari: 0 }];
-        renderRows();
-        state.loaded = true;
-      }
-    }
-
-    function initFromQuery() {
-      const params = new URLSearchParams(window.location.search);
-      const key = params.get('key');
-      const startParam = params.get('start');
-      const endParam = params.get('end');
-      if (key) {
-        loadFromKey(key).then(() => {
-          state.loaded = true;
-        });
-        return;
-      }
-      state.key = '';
-      document.getElementById('start').value = startParam || utils.todayISO();
-      document.getElementById('end').value = endParam || utils.plusDaysISO(document.getElementById('start').value, 6);
-      state.rows = [{ nama: '', tarif: 0, hari: 0 }];
-      renderRows();
-      state.loaded = true;
-    }
-
-    initFromQuery();
+    await initFromQuery();
     setOffline(!navigator.onLine);
+    refreshSummaryFromDom();
   </script>
+
 </body>
 </html>
