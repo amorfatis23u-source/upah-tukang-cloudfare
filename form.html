@@ -562,7 +562,7 @@
           </div>
         </div>
         <div class="row">
-          <button class="btn" onclick="try{saveAll&&saveAll()}catch(_){ if (typeof save==='function') save('rows', window.rows); else alert('Fungsi simpan tidak tersedia'); }">Simpan</button>
+          <button class="btn" data-testid="form-save" onclick="try{saveAll&&saveAll()}catch(_){ if (typeof save==='function') save('rows', window.rows); else alert('Fungsi simpan tidak tersedia'); }">Simpan</button>
           <button class="btn" onclick="window.print()">Cetak</button>
           <button class="btn" onclick="try{downloadCSV&&downloadCSV()}catch(_){alert('downloadCSV tidak ditemukan')}">Unduh CSV</button>
           <button class="btn" onclick="try{downloadJSON&&downloadJSON()}catch(_){alert('downloadJSON tidak ditemukan')}">Unduh JSON</button>
@@ -820,6 +820,98 @@ const defaultRumahList = baseRumah
   rows.forEach(r=>{ if(r.bonus===undefined) r.bonus=''; });
   let searchName = (localStorage.getItem('upah20_search')||'');
   let viewMode = localStorage.getItem('upah20_viewMode') || (window.innerWidth<=900 ? 'cards' : 'table');
+
+  function deepCopy(value){
+    if (typeof structuredClone === 'function') {
+      try { return structuredClone(value); } catch (_) {}
+    }
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function normaliseRows(nextRows){
+    const base = Array.isArray(nextRows) && nextRows.length ? deepCopy(nextRows) : deepCopy(defaultRows);
+    return base.map((row) => {
+      const clone = { nama: '', kelas: 'Tukang', group: '', rumah: ['', '', '', '', '', '', ''], ket: '', bonus: '', ...row };
+      if (!Array.isArray(clone.rumah)) {
+        clone.rumah = ['', '', '', '', '', '', ''];
+      } else if (clone.rumah.length < 7) {
+        clone.rumah = [...clone.rumah, ...Array(7 - clone.rumah.length).fill('')].slice(0, 7);
+      } else if (clone.rumah.length > 7) {
+        clone.rumah = clone.rumah.slice(0, 7);
+      }
+      if (clone.bonus === undefined) clone.bonus = '';
+      return clone;
+    });
+  }
+
+  window.upahFormBridge = window.upahFormBridge || {};
+  Object.assign(window.upahFormBridge, {
+    getState(){
+      return {
+        rows: deepCopy(rows),
+        classRates: deepCopy(classRates),
+        rumah: Array.isArray(rumah) ? [...rumah] : [],
+        allowance: { threshold: allowanceThreshold, amount: allowanceAmount }
+      };
+    },
+    setRows(next){
+      rows = normaliseRows(next);
+      save('rows', rows);
+      rerender();
+    },
+    setClassRates(next){
+      const safe = deepCopy(defaultClassRates);
+      Object.assign(safe, next || {});
+      classRates = safe;
+      save('classRates', classRates);
+      bootRatesUI();
+      rerender();
+    },
+    setRumah(list){
+      rumah = Array.isArray(list) ? list.filter((item) => item != null && String(item).trim().length).map((item) => String(item)) : [];
+      save('rumah', rumah);
+      renderRumah();
+      rerender();
+    },
+    setAllowance(values){
+      if (!values || typeof values !== 'object') return;
+      if (values.threshold !== undefined) {
+        allowanceThreshold = Number(values.threshold) || 0;
+        localStorage.setItem('upah20_beras_threshold', String(allowanceThreshold));
+      }
+      if (values.amount !== undefined) {
+        allowanceAmount = Number(values.amount) || 0;
+        localStorage.setItem('upah20_beras_amount', String(allowanceAmount));
+      }
+      bootBerasUI();
+      rerender();
+    },
+    setPeriod(period){
+      const startEl = document.getElementById('periodStart');
+      const endEl = document.getElementById('periodEnd');
+      if (period && typeof period === 'object') {
+        if (startEl && period.start !== undefined) {
+          startEl.value = period.start || '';
+          localStorage.setItem('upah20_periodStart', period.start || '');
+        }
+        if (endEl && period.end !== undefined) {
+          endEl.value = period.end || '';
+          localStorage.setItem('upah20_periodEnd', period.end || '');
+        }
+      }
+    },
+    resetToDefault(){
+      try { restoreDefaultRows(); } catch (_) {}
+      try { restoreDefaultRates(); } catch (_) {}
+      try { restoreDefaultRumah(); } catch (_) {}
+      allowanceThreshold = 3.9;
+      allowanceAmount = 20000;
+      localStorage.setItem('upah20_beras_threshold', String(allowanceThreshold));
+      localStorage.setItem('upah20_beras_amount', String(allowanceAmount));
+      bootBerasUI();
+      rerender();
+    }
+  });
 
   // ===== UI logic =====
   function restoreDefaultRates(){ classRates = structuredClone(defaultClassRates); bootRatesUI(); rerender(); }
@@ -1955,6 +2047,295 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(e){ console.warn('Restore snapshot failed', e); }
   })();
 })();
+</script>
+
+<script type="module">
+  import { ensureApiClient, buildSnapshotKey, summarizeRows, showToast, formatError } from '/assets/js/upah-core.js';
+
+  const api = ensureApiClient();
+  const params = new URLSearchParams(window.location.search);
+  const bridge = window.upahFormBridge || {};
+
+  const state = {
+    currentKey: params.get('key') || '',
+    isSaving: false,
+    lastMeta: null
+  };
+
+  const STORAGE_KEYS = {
+    rows: 'upah20_rows',
+    rates: 'upah20_classRates',
+    rumah: 'upah20_rumah',
+    periodStart: 'upah20_periodStart',
+    periodEnd: 'upah20_periodEnd',
+    allowanceThreshold: 'upah20_beras_threshold',
+    allowanceAmount: 'upah20_beras_amount',
+    lastKey: 'upah20_last_key'
+  };
+
+  function readLocalJSON(key, fallback) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn('readLocalJSON fallback', key, err);
+      return fallback;
+    }
+  }
+
+  function readWorkingState() {
+    if (bridge && typeof bridge.getState === 'function') {
+      try {
+        return bridge.getState();
+      } catch (err) {
+        console.warn('bridge.getState gagal', err);
+      }
+    }
+    return {
+      rows: readLocalJSON(STORAGE_KEYS.rows, []),
+      classRates: readLocalJSON(STORAGE_KEYS.rates, {}),
+      rumah: readLocalJSON(STORAGE_KEYS.rumah, []),
+      allowance: {
+        threshold: Number(window.localStorage.getItem(STORAGE_KEYS.allowanceThreshold) || '0'),
+        amount: Number(window.localStorage.getItem(STORAGE_KEYS.allowanceAmount) || '0')
+      }
+    };
+  }
+
+  function readPeriod() {
+    const startEl = document.getElementById('periodStart');
+    const endEl = document.getElementById('periodEnd');
+    const start = startEl?.value || window.localStorage.getItem(STORAGE_KEYS.periodStart) || '';
+    const end = endEl?.value || window.localStorage.getItem(STORAGE_KEYS.periodEnd) || '';
+    return { start, end };
+  }
+
+  function deriveRumahLabel(rumahList = [], rows = []) {
+    const list = Array.isArray(rumahList) ? rumahList.filter((item) => item != null && String(item).trim().length) : [];
+    if (list.length === 1) {
+      return String(list[0]);
+    }
+    const assigned = [];
+    rows.forEach((row) => {
+      (Array.isArray(row?.rumah) ? row.rumah : []).forEach((slot) => {
+        const raw = String(slot || '').trim();
+        if (!raw) return;
+        if (raw === '1/2 Lain') return;
+        if (/^1\/2\b/i.test(raw)) {
+          const cleaned = raw.replace(/^1\/2\s*/i, '').trim();
+          if (cleaned) assigned.push(cleaned);
+          return;
+        }
+        assigned.push(raw);
+      });
+    });
+    if (assigned.length) {
+      return assigned[0];
+    }
+    if (list.length) {
+      return String(list[0]);
+    }
+    return '';
+  }
+
+  function setSaving(flag) {
+    state.isSaving = flag;
+    const btn = document.querySelector('[data-testid="form-save"]');
+    if (btn) {
+      btn.disabled = !!flag;
+      if (flag) {
+        btn.setAttribute('aria-busy', 'true');
+      } else {
+        btn.removeAttribute('aria-busy');
+      }
+    }
+  }
+
+  function updateUrlWithKey(key) {
+    const url = new URL(window.location.href);
+    if (key) {
+      url.searchParams.set('key', key);
+      url.searchParams.delete('new');
+    } else {
+      url.searchParams.delete('key');
+    }
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  async function persistSnapshot() {
+    if (state.isSaving) return;
+    setSaving(true);
+    try {
+      const { rows, classRates, rumah, allowance } = readWorkingState();
+      const period = readPeriod();
+      const rumahLabel = deriveRumahLabel(rumah, rows);
+      const allowanceThreshold = Number(allowance?.threshold ?? window.localStorage.getItem(STORAGE_KEYS.allowanceThreshold) ?? 0) || 0;
+      const allowanceAmount = Number(allowance?.amount ?? window.localStorage.getItem(STORAGE_KEYS.allowanceAmount) ?? 0) || 0;
+      const summary = summarizeRows(rows, { classRates, allowanceThreshold, allowanceAmount });
+      const nowISO = new Date().toISOString();
+
+      const payload = {
+        version: 1,
+        start: period.start || '',
+        end: period.end || '',
+        rumah: rumahLabel || '',
+        rumahList: Array.isArray(rumah) ? [...rumah] : [],
+        classRates,
+        allowance: { threshold: allowanceThreshold, amount: allowanceAmount },
+        rows,
+        summary,
+        updatedAt: nowISO
+      };
+
+      const meta = {
+        start: payload.start || null,
+        end: payload.end || null,
+        rumah: payload.rumah || null,
+        total: summary.total,
+        totalDays: summary.totalDays,
+        updatedAt: nowISO
+      };
+
+      let key = state.currentKey;
+      if (!key) {
+        key = buildSnapshotKey({ start: payload.start, end: payload.end, rumah: payload.rumah, uuid: params.get('new') || undefined });
+      }
+
+      await api.saveSnapshot(key, payload, meta);
+      state.currentKey = key;
+      state.lastMeta = meta;
+      window.localStorage.setItem(STORAGE_KEYS.lastKey, key);
+      updateUrlWithKey(key);
+      if (typeof showToast === 'function') {
+        showToast('Snapshot tersimpan ke Cloudflare KV', 'success');
+      }
+      return key;
+    } catch (err) {
+      console.error('persistSnapshot gagal', err);
+      if (typeof showToast === 'function') {
+        showToast(formatError(err), 'error');
+      } else {
+        alert(formatError(err));
+      }
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function restoreSnapshot(key) {
+    if (!key) return;
+    setSaving(true);
+    try {
+      const res = await api.loadSnapshot(key);
+      const value = res?.value || {};
+      const rows = value.rows || value.data?.rows || [];
+      const classRates = value.classRates || value.rates || {};
+      const rumahList = value.rumahList || value.rumah || [];
+      const allowance = value.allowance || { threshold: value.allowanceThreshold, amount: value.allowanceAmount };
+      const period = {
+        start: value.start || value.periodStart || '',
+        end: value.end || value.periodEnd || ''
+      };
+
+      if (typeof bridge.setRows === 'function') bridge.setRows(rows);
+      if (typeof bridge.setClassRates === 'function') bridge.setClassRates(classRates);
+      if (typeof bridge.setRumah === 'function') bridge.setRumah(rumahList);
+      if (typeof bridge.setAllowance === 'function') bridge.setAllowance({
+        threshold: allowance?.threshold ?? allowance?.thr,
+        amount: allowance?.amount ?? allowance?.amt
+      });
+      if (typeof bridge.setPeriod === 'function') bridge.setPeriod(period);
+
+      state.currentKey = key;
+      window.localStorage.setItem(STORAGE_KEYS.lastKey, key);
+      updateUrlWithKey(key);
+      if (typeof showToast === 'function') {
+        showToast('Snapshot dimuat dari Cloudflare KV', 'success');
+      }
+    } catch (err) {
+      console.error('restoreSnapshot gagal', err);
+      if (typeof showToast === 'function') {
+        showToast(formatError(err), 'error');
+      } else {
+        alert(formatError(err));
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function prepareNewForm() {
+    state.currentKey = '';
+    try {
+      window.localStorage.removeItem(STORAGE_KEYS.lastKey);
+      if (typeof bridge.resetToDefault === 'function') {
+        bridge.resetToDefault();
+      }
+      if (typeof bridge.setPeriod === 'function') {
+        bridge.setPeriod({ start: '', end: '' });
+      }
+      updateUrlWithKey('');
+    } catch (err) {
+      console.warn('prepareNewForm warning', err);
+    }
+  }
+
+  const originalSaveAll = window.saveAll;
+  window.saveAll = async function patchedSaveAll(...args) {
+    await persistSnapshot();
+    if (typeof originalSaveAll === 'function') {
+      try {
+        const result = originalSaveAll.apply(this, args);
+        if (result && typeof result.then === 'function') {
+          return await result;
+        }
+        return result;
+      } catch (err) {
+        console.warn('original saveAll error', err);
+        throw err;
+      }
+    }
+    return undefined;
+  };
+
+  function init() {
+    const saveBtn = document.querySelector('[data-testid="form-save"]');
+    if (saveBtn) {
+      saveBtn.type = 'button';
+    }
+
+    if (params.has('new')) {
+      prepareNewForm();
+    } else if (!state.currentKey) {
+      const lastKey = window.localStorage.getItem(STORAGE_KEYS.lastKey);
+      if (lastKey) {
+        state.currentKey = lastKey;
+      }
+    }
+
+    if (state.currentKey) {
+      restoreSnapshot(state.currentKey);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+
+  window.addEventListener('beforeunload', () => {
+    if (state.isSaving) {
+      setSaving(false);
+    }
+  });
+
+  window.upahFormController = {
+    save: persistSnapshot,
+    restore: restoreSnapshot
+  };
 </script>
 
 </body>

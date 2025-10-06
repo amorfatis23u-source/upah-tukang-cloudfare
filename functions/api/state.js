@@ -53,12 +53,25 @@ export async function onRequest(context) {
       }
 
       const safeMeta = {};
+      const nowISO = new Date().toISOString();
       if (meta && typeof meta === 'object') {
         for (const keyName of ALLOWED_META_KEYS) {
           if (meta[keyName] !== undefined) {
             safeMeta[keyName] = meta[keyName];
           }
         }
+      }
+      if (!safeMeta.updatedAt) {
+        safeMeta.updatedAt = nowISO;
+      }
+      if (!safeMeta.start && typeof value === 'object' && value) {
+        safeMeta.start = value.start || value.periodStart || null;
+      }
+      if (!safeMeta.end && typeof value === 'object' && value) {
+        safeMeta.end = value.end || value.periodEnd || null;
+      }
+      if (!safeMeta.rumah && typeof value === 'object' && value) {
+        safeMeta.rumah = value.rumah || value.rumahUtama || null;
       }
       safeMeta.valueSize = stringified.length;
 

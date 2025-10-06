@@ -98,18 +98,98 @@ export function ensureApiClient() {
       async saveData(key, value, meta = {}) {
         return API.set(key, value, meta);
       },
+      async saveSnapshot(key, value, meta = {}) {
+        return API.set(key, value, meta);
+      },
       async loadData(key) {
+        return API.get(key);
+      },
+      async loadSnapshot(key) {
         return API.get(key);
       },
       async deleteData(key) {
         return API.del(key);
       },
+      async deleteKey(key) {
+        return API.del(key);
+      },
       async list(prefix, cursor = '', limit = 50) {
+        return API.list(prefix, cursor, limit);
+      },
+      async listSnapshots(prefix, cursor = '', limit = 50) {
         return API.list(prefix, cursor, limit);
       }
     };
   }
   return apiClientInstance;
+}
+
+export function sanitizeKeyPart(part = '') {
+  return String(part || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]/g, '');
+}
+
+export function buildSnapshotKey({ start = '', end = '', rumah = '', uuid } = {}) {
+  const cleanStart = sanitizeKeyPart(start);
+  const cleanEnd = sanitizeKeyPart(end);
+  const cleanRumah = sanitizeKeyPart(rumah);
+  const id = uuid || utils.uuid();
+
+  const segments = ['ut', 'snap'];
+  if (cleanStart) segments.push(cleanStart);
+  if (cleanEnd) segments.push(cleanEnd);
+  if (cleanRumah) segments.push(cleanRumah);
+
+  if (segments.length === 2) {
+    return `snap:${id}`;
+  }
+
+  return `${segments.join(':')}:${id}`;
+}
+
+export function summarizeRows(rows = [], { classRates = {}, allowanceThreshold = 0, allowanceAmount = 0 } = {}) {
+  let totalDays = 0;
+  let totalWage = 0;
+  let totalRice = 0;
+  let totalBonus = 0;
+
+  rows.forEach((row) => {
+    const kelas = row?.kelas || 'Tukang';
+    const rate = Number(classRates[kelas] || 0);
+    const rumahList = Array.isArray(row?.rumah) ? row.rumah : [];
+    const days = rumahList.reduce((acc, item) => {
+      if (!item) return acc;
+      const text = String(item).trim();
+      if (!text) return acc;
+      if (text === '1/2 Lain' || /^1\/2\b/.test(text)) {
+        return acc + 0.5;
+      }
+      return acc + 1;
+    }, 0);
+    const wage = days * rate;
+    const rice = days > allowanceThreshold ? allowanceAmount : 0;
+    const bonusRaw = row?.bonus ?? 0;
+    const bonus = typeof bonusRaw === 'number'
+      ? bonusRaw
+      : Number(String(bonusRaw).replace(/[^\d.-]/g, '')) || 0;
+    totalDays += days;
+    totalWage += wage;
+    totalRice += rice;
+    totalBonus += bonus;
+  });
+
+  const total = totalWage + totalRice + totalBonus;
+
+  return {
+    totalDays,
+    totalWage,
+    totalRice,
+    totalBonus,
+    total
+  };
 }
 
 // ===== Period helpers =====
