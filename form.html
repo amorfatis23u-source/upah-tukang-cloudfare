@@ -389,12 +389,29 @@
       position: relative;
       transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
+    .table-card td.day-cell::after {
+      content: "";
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      bottom: 0.3rem;
+      height: 2px;
+      border-radius: 999px;
+      background: transparent;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      transform: scaleX(0.5);
+      pointer-events: none;
+    }
     .table-card td.day-cell .day-select {
       width: 100%;
     }
     .table-card td.day-cell.filled {
-      background: color-mix(in srgb, var(--accent) 16%, var(--surface)) !important;
-      box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 55%, transparent);
+      background: transparent !important;
+      box-shadow: none;
+    }
+    .table-card td.day-cell.filled::after {
+      background: color-mix(in srgb, var(--accent) 65%, transparent);
+      transform: scaleX(1);
     }
     .table-card td.day-cell.filled .day-select {
       font-weight: 600;
