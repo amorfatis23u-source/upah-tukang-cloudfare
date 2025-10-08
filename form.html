@@ -308,25 +308,30 @@
     }
     .table-card table {
       width: 100%;
-      min-width: 1024px;
+      min-width: 880px;
       border-collapse: separate;
       border-spacing: 0;
-      font-size: clamp(0.75rem, 0.72rem + 0.2vw, 0.9rem);
+      font-size: 8pt;
     }
     .table-card th,
     .table-card td {
-      padding: 0.65rem 0.75rem;
+      padding: 0.45rem 0.55rem;
       border-bottom: 1px solid rgba(148,163,184,0.22);
       vertical-align: top;
-      line-height: 1.35;
+      line-height: 1.25;
     }
     .table-card thead th {
-      font-size: clamp(0.6rem, 0.55rem + 0.15vw, 0.7rem);
+      font-size: 8pt;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--text-muted);
       background: var(--surface-muted);
       font-weight: 600;
+    }
+    .table-card thead th.col-bonus,
+    .table-card thead th.col-total-bayar,
+    .table-card thead th.col-ket {
+      text-align: center;
     }
     .table-card tbody tr:nth-child(odd) td {
       background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
@@ -686,9 +691,9 @@
               <th class="right">Total Hari</th>
               <th class="right">Upah Pokok</th>
               <th class="right">Uang Beras</th>
-              <th class="right">Bonus</th>
-              <th class="right">Total Bayar</th>
-              <th class="hide-sm">Keterangan</th>
+              <th class="right col-bonus">Bonus</th>
+              <th class="right col-total-bayar">Total Bayar</th>
+              <th class="hide-sm col-ket">Keterangan</th>
               <th></th>
             </tr>
           </thead>
@@ -699,9 +704,9 @@
               <td id="sumHari" class="right sum">0</td>
               <td id="sumUpahPokok" class="right sum">Rp 0</td>
               <td id="sumBeras" class="right sum">Rp 0</td>
-              <td id="sumBonus" class="right sum">Rp 0</td>
-              <td id="sumTotalBayar" class="right sum">Rp 0</td>
-              <td class="hide-sm"></td>
+              <td id="sumBonus" class="right sum col-bonus">Rp 0</td>
+              <td id="sumTotalBayar" class="right sum col-total-bayar">Rp 0</td>
+              <td class="hide-sm col-ket"></td>
               <td></td>
             </tr>
           </tfoot>
@@ -1061,10 +1066,10 @@ const upahPokok = hari * rate;
         const tdH=document.createElement('td'); tdH.className='right'; tdH.textContent=fmtHari(hari); tr.appendChild(tdH);
         const tdU=document.createElement('td'); tdU.className='right'; tdU.textContent=rp(upahPokok); tr.appendChild(tdU);
         const tdB=document.createElement('td'); tdB.className='right'; tdB.textContent=rp(uangBeras); tr.appendChild(tdB);
-        const tdBonus=document.createElement('td'); tdBonus.className='right'; tdBonus.innerHTML = `<input class='input right' type='number' inputmode='numeric' placeholder='0' value="${(r.bonus??'')}" oninput="this.value=this.value.replace(/[^\\d]/g,''); rows[${idx}].bonus=this.value; save('rows',rows);" onblur="rerender();" />`; tr.appendChild(tdBonus);
-        const tdTB=document.createElement('td'); tdTB.className='right'; tdTB.textContent=rp(totalBayar); tr.appendChild(tdTB);
+        const tdBonus=document.createElement('td'); tdBonus.className='right col-bonus'; tdBonus.innerHTML = `<input class='input right' type='number' inputmode='numeric' placeholder='0' value="${(r.bonus??'')}" oninput="this.value=this.value.replace(/[^\\d]/g,''); rows[${idx}].bonus=this.value; save('rows',rows);" onblur="rerender();" />`; tr.appendChild(tdBonus);
+        const tdTB=document.createElement('td'); tdTB.className='right col-total-bayar'; tdTB.textContent=rp(totalBayar); tr.appendChild(tdTB);
 
-        const tdKet=document.createElement('td'); tdKet.className='hide-sm'; tdKet.innerHTML = `<input class='input' placeholder='Keterangan…' value="${r.ket||''}" oninput="rows[${idx}].ket=this.value; save('rows',rows);" />`; tr.appendChild(tdKet);
+        const tdKet=document.createElement('td'); tdKet.className='hide-sm col-ket'; tdKet.innerHTML = `<input class='input' placeholder='Keterangan…' value="${r.ket||''}" oninput="rows[${idx}].ket=this.value; save('rows',rows);" />`; tr.appendChild(tdKet);
 
         const tdA=document.createElement('td'); tdA.className='center'; tdA.innerHTML=`<button class='btn small' onclick='removeWorker(${idx})'>Hapus</button>`; tr.appendChild(tdA);
 
@@ -1083,9 +1088,9 @@ const upahPokok = hari * rate;
         <td class="right sum">${fmtHari(gHari)}</td>
         <td class="right sum">${rp(gUpah)}</td>
         <td class="right sum">${rp(gBeras)}</td>
-        <td class="right sum">${rp(gBonus)}</td>
-        <td class="right sum">${rp(gTotal)}</td>
-        <td class="hide-sm"></td><td></td>`;
+        <td class="right sum col-bonus">${rp(gBonus)}</td>
+        <td class="right sum col-total-bayar">${rp(gTotal)}</td>
+        <td class="hide-sm col-ket"></td><td></td>`;
       tbody.appendChild(trSub);
     });
 
