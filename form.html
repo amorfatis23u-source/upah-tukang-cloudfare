@@ -375,49 +375,19 @@
     .table-card tbody tr:hover td {
       background: color-mix(in srgb, var(--accent) 10%, var(--surface));
     }
-    .table-card .input {
-      background: transparent;
-      border-radius: 6px;
-      padding: 0.3rem 0.4rem;
-      border-color: rgba(148,163,184,0.5);
-    }
-    .table-card .input:focus {
-      background: var(--surface);
-      box-shadow: none;
-    }
     .table-card td.day-cell {
-      position: relative;
-      transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-    .table-card td.day-cell::after {
-      content: "";
-      position: absolute;
-      left: 12%;
-      right: 12%;
-      bottom: 0.3rem;
-      height: 2px;
-      border-radius: 999px;
-      background: transparent;
-      transition: background-color 0.2s ease, transform 0.2s ease;
-      transform: scaleX(0.5);
-      pointer-events: none;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
     }
     .table-card td.day-cell .day-select {
       width: 100%;
     }
     .table-card td.day-cell.filled {
-      background: transparent !important;
-      box-shadow: none;
-    }
-    .table-card td.day-cell.filled::after {
-      background: color-mix(in srgb, var(--accent) 65%, transparent);
-      transform: scaleX(1);
+      background: color-mix(in srgb, var(--accent) 22%, var(--surface)) !important;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
     }
     .table-card td.day-cell.filled .day-select {
       font-weight: 600;
-      color: var(--text);
-      border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
-      background: transparent;
+      color: var(--accent-strong);
     }
     .table-card tfoot td {
       font-weight: 700;
