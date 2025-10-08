@@ -386,17 +386,18 @@
       box-shadow: none;
     }
     .table-card td.day-cell {
-      transition: border-color 0.2s ease;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
     .table-card td.day-cell .day-select {
       width: 100%;
     }
     .table-card td.day-cell.filled {
-      background: transparent !important;
+      background: color-mix(in srgb, var(--accent) 12%, var(--surface)) !important;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
     }
     .table-card td.day-cell.filled .day-select {
       font-weight: 600;
-      color: var(--text);
+      color: var(--accent-strong);
       border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
     }
     .table-card tfoot td {
