@@ -384,8 +384,11 @@
       background: var(--surface);
       box-shadow: none;
     }
+    .table-card th.day-head,
     .table-card td.day-cell {
       transition: background-color 0.2s ease, border-color 0.2s ease;
+      width: 6.25rem;
+      min-width: 6.25rem;
     }
     .table-card td.day-cell .day-select {
       width: 100%;
@@ -751,13 +754,13 @@
               <th>Kelas</th>
               <th>Group</th>
               <th class="right hide-sm">Tarif/Nama</th>
-              <th class="center">Minggu</th>
-              <th class="center">Senin</th>
-              <th class="center">Selasa</th>
-              <th class="center">Rabu</th>
-              <th class="center">Kamis</th>
-              <th class="center">Jumat</th>
-              <th class="center">Sabtu</th>
+              <th class="center day-head">Minggu</th>
+              <th class="center day-head">Senin</th>
+              <th class="center day-head">Selasa</th>
+              <th class="center day-head">Rabu</th>
+              <th class="center day-head">Kamis</th>
+              <th class="center day-head">Jumat</th>
+              <th class="center day-head">Sabtu</th>
               <th class="right">Total Hari</th>
               <th class="right">Upah Pokok</th>
               <th class="right">Uang Beras</th>
