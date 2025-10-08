@@ -51,7 +51,7 @@
     a { color: inherit; text-decoration: none; }
     button { font: inherit; color: inherit; cursor: pointer; }
     input, select, textarea { font: inherit; color: inherit; background: transparent; }
-    .shell { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+    .shell { max-width: 1400px; margin: 0 auto; padding: 0 1.5rem; }
     .app-header {
       position: sticky;
       top: 0;
@@ -308,25 +308,30 @@
     }
     .table-card table {
       width: 100%;
-      min-width: 1024px;
+      min-width: 880px;
       border-collapse: separate;
       border-spacing: 0;
-      font-size: clamp(0.75rem, 0.72rem + 0.2vw, 0.9rem);
+      font-size: 8pt;
     }
     .table-card th,
     .table-card td {
-      padding: 0.65rem 0.75rem;
+      padding: 0.45rem 0.55rem;
       border-bottom: 1px solid rgba(148,163,184,0.22);
       vertical-align: top;
-      line-height: 1.35;
+      line-height: 1.25;
     }
     .table-card thead th {
-      font-size: clamp(0.6rem, 0.55rem + 0.15vw, 0.7rem);
+      font-size: 8pt;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--text-muted);
       background: var(--surface-muted);
       font-weight: 600;
+    }
+    .table-card thead th.col-bonus,
+    .table-card thead th.col-total-bayar,
+    .table-card thead th.col-ket {
+      text-align: center;
     }
     .table-card tbody tr:nth-child(odd) td {
       background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
@@ -686,9 +691,9 @@
               <th class="right">Total Hari</th>
               <th class="right">Upah Pokok</th>
               <th class="right">Uang Beras</th>
-              <th class="right">Bonus</th>
-              <th class="right">Total Bayar</th>
-              <th class="hide-sm">Keterangan</th>
+              <th class="right col-bonus">Bonus</th>
+              <th class="right col-total-bayar">Total Bayar</th>
+              <th class="hide-sm col-ket">Keterangan</th>
               <th></th>
             </tr>
           </thead>
@@ -699,9 +704,9 @@
               <td id="sumHari" class="right sum">0</td>
               <td id="sumUpahPokok" class="right sum">Rp 0</td>
               <td id="sumBeras" class="right sum">Rp 0</td>
-              <td id="sumBonus" class="right sum">Rp 0</td>
-              <td id="sumTotalBayar" class="right sum">Rp 0</td>
-              <td class="hide-sm"></td>
+              <td id="sumBonus" class="right sum col-bonus">Rp 0</td>
+              <td id="sumTotalBayar" class="right sum col-total-bayar">Rp 0</td>
+              <td class="hide-sm col-ket"></td>
               <td></td>
             </tr>
           </tfoot>
@@ -1061,10 +1066,10 @@ const upahPokok = hari * rate;
         const tdH=document.createElement('td'); tdH.className='right'; tdH.textContent=fmtHari(hari); tr.appendChild(tdH);
         const tdU=document.createElement('td'); tdU.className='right'; tdU.textContent=rp(upahPokok); tr.appendChild(tdU);
         const tdB=document.createElement('td'); tdB.className='right'; tdB.textContent=rp(uangBeras); tr.appendChild(tdB);
-        const tdBonus=document.createElement('td'); tdBonus.className='right'; tdBonus.innerHTML = `<input class='input right' type='number' inputmode='numeric' placeholder='0' value="${(r.bonus??'')}" oninput="this.value=this.value.replace(/[^\\d]/g,''); rows[${idx}].bonus=this.value; save('rows',rows);" onblur="rerender();" />`; tr.appendChild(tdBonus);
-        const tdTB=document.createElement('td'); tdTB.className='right'; tdTB.textContent=rp(totalBayar); tr.appendChild(tdTB);
+        const tdBonus=document.createElement('td'); tdBonus.className='right col-bonus'; tdBonus.innerHTML = `<input class='input right' type='number' inputmode='numeric' placeholder='0' value="${(r.bonus??'')}" oninput="this.value=this.value.replace(/[^\\d]/g,''); rows[${idx}].bonus=this.value; save('rows',rows);" onblur="rerender();" />`; tr.appendChild(tdBonus);
+        const tdTB=document.createElement('td'); tdTB.className='right col-total-bayar'; tdTB.textContent=rp(totalBayar); tr.appendChild(tdTB);
 
-        const tdKet=document.createElement('td'); tdKet.className='hide-sm'; tdKet.innerHTML = `<input class='input' placeholder='Keterangan…' value="${r.ket||''}" oninput="rows[${idx}].ket=this.value; save('rows',rows);" />`; tr.appendChild(tdKet);
+        const tdKet=document.createElement('td'); tdKet.className='hide-sm col-ket'; tdKet.innerHTML = `<input class='input' placeholder='Keterangan…' value="${r.ket||''}" oninput="rows[${idx}].ket=this.value; save('rows',rows);" />`; tr.appendChild(tdKet);
 
         const tdA=document.createElement('td'); tdA.className='center'; tdA.innerHTML=`<button class='btn small' onclick='removeWorker(${idx})'>Hapus</button>`; tr.appendChild(tdA);
 
@@ -1083,9 +1088,9 @@ const upahPokok = hari * rate;
         <td class="right sum">${fmtHari(gHari)}</td>
         <td class="right sum">${rp(gUpah)}</td>
         <td class="right sum">${rp(gBeras)}</td>
-        <td class="right sum">${rp(gBonus)}</td>
-        <td class="right sum">${rp(gTotal)}</td>
-        <td class="hide-sm"></td><td></td>`;
+        <td class="right sum col-bonus">${rp(gBonus)}</td>
+        <td class="right sum col-total-bayar">${rp(gTotal)}</td>
+        <td class="hide-sm col-ket"></td><td></td>`;
       tbody.appendChild(trSub);
     });
 
@@ -1448,113 +1453,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-
-
-<script>
-// === Injected by ChatGPT (tidy): robust sticky header/footer with debounced sync ===
-(function(){
-  const wrap = document.getElementById('tableWrap');
-  const tbl  = document.getElementById('tbl');
-  if(!wrap || !tbl) return;
-  if (wrap.dataset.stickyApplied === '1') return;
-  wrap.dataset.stickyApplied = '1';
-
-  const headBox = document.createElement('div');
-  headBox.className = 'sticky-header';
-  const footBox = document.createElement('div');
-  footBox.className = 'sticky-footer';
-
-  const headTable = document.createElement('table');
-  const footTable = document.createElement('table');
-  headBox.appendChild(headTable);
-  footBox.appendChild(footTable);
-
-  const thead = tbl.querySelector('thead');
-  const tfoot = tbl.querySelector('tfoot');
-
-  if (thead){
-    headTable.innerHTML = '<thead>' + thead.innerHTML + '</thead>';
-    thead.classList.add('is-hidden');
-  }
-  if (tfoot){
-    footTable.innerHTML = '<tfoot>' + tfoot.innerHTML + '</tfoot>';
-    tfoot.classList.add('is-hidden');
-  }
-
-  wrap.prepend(headBox);
-  wrap.appendChild(footBox);
-
-  const raf = window.requestAnimationFrame;
-  let rAF_token = null;
-  let scrollLeftMemo = 0;
-
-  function measureAndSync(){
-    rAF_token = null;
-    const srcRow = tbl.tHead ? tbl.tHead.rows[0] : (tbl.tBodies[0]?.rows[0] || null);
-    const dstHeadRow = headTable.tHead ? headTable.tHead.rows[0] : null;
-    const dstFootRow = footTable.tFoot ? footTable.tFoot.rows[0] : null;
-    if (srcRow && dstHeadRow){
-      const srcCells = Array.from(srcRow.cells);
-      const dstCells = Array.from(dstHeadRow.cells);
-      const n = Math.min(srcCells.length, dstCells.length);
-      for (let i=0;i<n;i++){
-        const w = srcCells[i].getBoundingClientRect().width;
-        Object.assign(dstCells[i].style, {width: w+'px', minWidth: w+'px', maxWidth: w+'px'});
-      }
-    }
-    if (srcRow && dstFootRow){
-      const srcCells = Array.from(srcRow.cells);
-      const dstCells = Array.from(dstFootRow.cells);
-      const n = Math.min(srcCells.length, dstCells.length);
-      for (let i=0;i<n;i++){
-        const w = srcCells[i].getBoundingClientRect().width;
-        Object.assign(dstCells[i].style, {width: w+'px', minWidth: w+'px', maxWidth: w+'px'});
-      }
-    }
-    const headH = headBox.getBoundingClientRect().height;
-    const footH = footBox.getBoundingClientRect().height;
-    wrap.classList.add('padding-for-sticky');
-    wrap.style.setProperty('--stickyHeadH', headH + 'px');
-    wrap.style.setProperty('--stickyFootH', footH + 'px');
-
-    // keep overlays aligned with horizontal scroll
-    headTable.style.transform = `translateX(${-wrap.scrollLeft}px)`;
-    footTable.style.transform = `translateX(${-wrap.scrollLeft}px)`;
-  }
-
-  function debounceSync(){
-    if (rAF_token) return;
-    rAF_token = raf(measureAndSync);
-  }
-
-  function syncFooterContent(){
-    const origFoot = tbl.querySelector('tfoot');
-    if (!origFoot || !footTable.tFoot) return;
-    footTable.tFoot.innerHTML = origFoot.innerHTML;
-    debounceSync();
-  }
-
-  // Observe table changes (totals update)
-  const mo = new MutationObserver(syncFooterContent);
-  mo.observe(tbl, {subtree: true, childList: true, characterData: true});
-
-  // Initial sync after layout
-  raf(()=>{ debounceSync(); syncFooterContent(); });
-
-  // Resync on resize and on column visibility toggles (if any)
-  window.addEventListener('resize', debounceSync);
-
-  // Horizontal scroll alignment
-  wrap.addEventListener('scroll', ()=>{
-    // Only reapply transform if changed enough
-    if (wrap.scrollLeft !== scrollLeftMemo){
-      scrollLeftMemo = wrap.scrollLeft;
-      headTable.style.transform = `translateX(${-scrollLeftMemo}px)`;
-      footTable.style.transform = `translateX(${-scrollLeftMemo}px)`;
-    }
-  }, {passive:true});
-})();
-</script>
 
 
 <!-- === Hide Kelas & Group: JS === -->
