@@ -1980,73 +1980,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const WHATSAPP_BASE='https://web.whatsapp.com/send';
   const WHATSAPP_PHONE='6281210400168';
 
-  async function shareCsvFile(csv, filename){
-    if(!csv) return false;
-    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
-    if(typeof File!=='function') return false;
-    let file;
-    try{
-      file = new File([csv], filename, { type: 'text/csv;charset=utf-8' });
-    }catch(err){
-      console.warn('Gagal membuat File CSV', err);
-      return false;
-    }
-    const sharePayload = {
-      files:[file],
-      title:'Rekap Upah 7 Hari',
-      text:`Rekap terbaru (${filename}) terlampir sebagai file CSV.`
-    };
-    // Tambahkan URL agar perangkat yang mendukung bisa langsung membuka WA
-    try{
-      const waLink = new URL(WHATSAPP_BASE);
-      waLink.searchParams.set('phone', WHATSAPP_PHONE);
-      sharePayload.url = waLink.toString();
-    }catch(err){
-      console.warn('Gagal menyusun tautan WhatsApp untuk share payload', err);
-    }
-    if(typeof navigator.canShare==='function'){
-      if(!navigator.canShare(sharePayload)){
-        const minimalPayload = { files:[file] };
-        if(!navigator.canShare(minimalPayload)){
-          return false;
-        }
-        delete sharePayload.url;
-      }
-    }
-    try{
-      await navigator.share(sharePayload);
-      return true;
-    }catch(err){
-      if(err && err.name==='AbortError'){
-        console.warn('Berbagi CSV dibatalkan pengguna');
-      }else{
-        console.warn('navigator.share gagal', err);
-      }
-      return false;
-    }
+  function formatCurrency(num){
+    let value = Number(num||0);
+    if(!Number.isFinite(value)) value = 0;
+    return 'Rp ' + value.toLocaleString('id-ID');
   }
 
-  async function copyCsvToClipboard(csv, filename){
-    if(!csv) return false;
-    if(typeof navigator==='undefined' || !navigator.clipboard) return false;
-    if(typeof ClipboardItem!=='function') return false;
-    try{
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-      const clipboardItem = new ClipboardItem({
-        'text/csv': blob,
-        'text/plain': new Blob([
-          `Rekap Upah 7 Hari (${filename})\n\n${csv}`
-        ], { type: 'text/plain;charset=utf-8' })
-      });
-      await navigator.clipboard.write([clipboardItem]);
-      return true;
-    }catch(err){
-      console.warn('Gagal menyalin CSV ke clipboard', err);
-      return false;
-    }
+  function formatHari(value){
+    if(typeof value!=='number') value = Number(value||0);
+    if(!Number.isFinite(value)) value = 0;
+    const opts = Number.isInteger(value) ? {} : { minimumFractionDigits: 1, maximumFractionDigits: 1 };
+    return value.toLocaleString('id-ID', opts);
   }
 
-  async function openWhatsappWithCsv(){
+  function buildWhatsappMessage(){
+    const ps=document.getElementById('periodStart');
+    const pe=document.getElementById('periodEnd');
+    const start=ps&&ps.value?ps.value:'';
+    const end=pe&&pe.value?pe.value:'';
+    const totals=computeTotals();
+    const lines=['*Rekap Upah 7 Hari*'];
+    if(start && end){
+      lines.push(`Periode: ${start} s/d ${end}`);
+    }else if(start){
+      lines.push(`Periode mulai ${start}`);
+    }
+    lines.push('');
+    lines.push(`Pekerja: ${totals.pekerja}`);
+    lines.push(`Total hari: ${formatHari(totals.sumHari)}`);
+    lines.push(`Upah pokok: ${formatCurrency(totals.sumPokok)}`);
+    lines.push(`Uang beras: ${formatCurrency(totals.sumBeras)}`);
+    lines.push(`Bonus: ${formatCurrency(totals.sumBonus)}`);
+    lines.push(`Total dibayarkan: ${formatCurrency(totals.sumTotal)}`);
+    return lines.join('\n');
+  }
+
+  function openWhatsappWithText(){
     let prepWindow = null;
     try{
       prepWindow = window.open('about:blank', '_blank', 'noopener');
@@ -2055,48 +2024,19 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Gagal menyiapkan jendela WhatsApp', err);
     }
     try{
-      if(typeof window.buildCsvSnapshot!=='function'){
-        throw new Error('buildCsvSnapshot tidak tersedia');
-      }
-      const snapshot = window.buildCsvSnapshot();
-      if(!snapshot || !snapshot.csv){
-        throw new Error('CSV kosong');
-      }
-      const {csv, filename} = snapshot;
-      const shared = await shareCsvFile(csv, filename);
-      if(shared){
-        if(prepWindow && !prepWindow.closed){ prepWindow.close(); }
-        return;
-      }
-      let copied=false;
-      try{
-        copied = await copyCsvToClipboard(csv, filename);
-        if(copied){
-          console.info('CSV disalin ke clipboard, siap ditempel di WhatsApp');
-        }
-      }catch(copyErr){
-        console.warn('copyCsvToClipboard gagal', copyErr);
-      }
-      try{
-        if(typeof _downloadBlob==='function'){
-          _downloadBlob(csv, 'text/csv;charset=utf-8', filename);
-        }
-      }catch(downloadErr){
-        console.warn('Gagal mengunduh CSV cadangan', downloadErr);
-      }
-      const messageBase = copied
-        ? `Rekap ${filename} telah disalin ke clipboard. Buka WhatsApp dan tekan Ctrl+V / Tempel untuk mengirim file CSV ini.`
-        : `Rekap ${filename} siap dibagikan. File CSV telah diunduh otomatis, silakan lampirkan pada percakapan ini.`;
       const waUrl = new URL(WHATSAPP_BASE);
       waUrl.searchParams.set('phone', WHATSAPP_PHONE);
-      waUrl.searchParams.set('text', messageBase);
+      const message = buildWhatsappMessage();
+      if(message){
+        waUrl.searchParams.set('text', message);
+      }
       if(prepWindow && !prepWindow.closed){
         prepWindow.location.href = waUrl.toString();
       }else{
         window.open(waUrl.toString(), '_blank', 'noopener');
       }
     }catch(err){
-      console.warn('Gagal memproses WhatsApp CSV', err);
+      console.warn('Gagal memproses WhatsApp text', err);
       try{
         const fallback = new URL(WHATSAPP_BASE);
         fallback.searchParams.set('phone', WHATSAPP_PHONE);
@@ -2114,9 +2054,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function goToIndexAndWhatsapp(){
     try{
-      await openWhatsappWithCsv();
+      openWhatsappWithText();
     }catch(err){
-      console.warn('openWhatsappWithCsv error', err);
+      console.warn('openWhatsappWithText error', err);
     }
     try{
       window.location.href = INDEX_URL;
