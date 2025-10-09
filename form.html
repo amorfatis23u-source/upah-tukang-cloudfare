@@ -1991,15 +1991,30 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Gagal membuat File CSV', err);
       return false;
     }
-    if(typeof navigator.canShare==='function' && !navigator.canShare({ files:[file] })){
-      return false;
+    const sharePayload = {
+      files:[file],
+      title:'Rekap Upah 7 Hari',
+      text:`Rekap terbaru (${filename}) terlampir sebagai file CSV.`
+    };
+    // Tambahkan URL agar perangkat yang mendukung bisa langsung membuka WA
+    try{
+      const waLink = new URL(WHATSAPP_BASE);
+      waLink.searchParams.set('phone', WHATSAPP_PHONE);
+      sharePayload.url = waLink.toString();
+    }catch(err){
+      console.warn('Gagal menyusun tautan WhatsApp untuk share payload', err);
+    }
+    if(typeof navigator.canShare==='function'){
+      if(!navigator.canShare(sharePayload)){
+        const minimalPayload = { files:[file] };
+        if(!navigator.canShare(minimalPayload)){
+          return false;
+        }
+        delete sharePayload.url;
+      }
     }
     try{
-      await navigator.share({
-        files:[file],
-        title:'Rekap Upah 7 Hari',
-        text:`Rekap terbaru (${filename}) terlampir sebagai file CSV.`
-      });
+      await navigator.share(sharePayload);
       return true;
     }catch(err){
       if(err && err.name==='AbortError'){
@@ -2007,6 +2022,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }else{
         console.warn('navigator.share gagal', err);
       }
+      return false;
+    }
+  }
+
+  async function copyCsvToClipboard(csv, filename){
+    if(!csv) return false;
+    if(typeof navigator==='undefined' || !navigator.clipboard) return false;
+    if(typeof ClipboardItem!=='function') return false;
+    try{
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const clipboardItem = new ClipboardItem({
+        'text/csv': blob,
+        'text/plain': new Blob([
+          `Rekap Upah 7 Hari (${filename})\n\n${csv}`
+        ], { type: 'text/plain;charset=utf-8' })
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      return true;
+    }catch(err){
+      console.warn('Gagal menyalin CSV ke clipboard', err);
       return false;
     }
   }
@@ -2033,6 +2068,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if(prepWindow && !prepWindow.closed){ prepWindow.close(); }
         return;
       }
+      let copied=false;
+      try{
+        copied = await copyCsvToClipboard(csv, filename);
+        if(copied){
+          console.info('CSV disalin ke clipboard, siap ditempel di WhatsApp');
+        }
+      }catch(copyErr){
+        console.warn('copyCsvToClipboard gagal', copyErr);
+      }
       try{
         if(typeof _downloadBlob==='function'){
           _downloadBlob(csv, 'text/csv;charset=utf-8', filename);
@@ -2040,10 +2084,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }catch(downloadErr){
         console.warn('Gagal mengunduh CSV cadangan', downloadErr);
       }
-      const message = `Rekap ${filename} siap dibagikan. File CSV telah diunduh otomatis, silakan lampirkan pada percakapan ini.`;
+      const messageBase = copied
+        ? `Rekap ${filename} telah disalin ke clipboard. Buka WhatsApp dan tekan Ctrl+V / Tempel untuk mengirim file CSV ini.`
+        : `Rekap ${filename} siap dibagikan. File CSV telah diunduh otomatis, silakan lampirkan pada percakapan ini.`;
       const waUrl = new URL(WHATSAPP_BASE);
       waUrl.searchParams.set('phone', WHATSAPP_PHONE);
-      waUrl.searchParams.set('text', message);
+      waUrl.searchParams.set('text', messageBase);
       if(prepWindow && !prepWindow.closed){
         prepWindow.location.href = waUrl.toString();
       }else{
