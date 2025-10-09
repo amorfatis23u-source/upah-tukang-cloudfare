@@ -1463,11 +1463,17 @@ const upahPokok = hari * rate;
   }
 
   function buildCsvSnapshot(){
+    const period = (typeof readPeriod === 'function') ? readPeriod() : { start: '', end: '' };
     const headers = [
       'No','Nama','Kelas','Group','Rate',
       ...displayDayKeys, 'Hari','Upah Pokok','Uang Beras','Total','Keterangan'
     ];
-    const lines = [ headers.map(_csvEscape).join(',') ];
+    const lines = [
+      ['Periode Mulai', period.start || ''].map(_csvEscape).join(','),
+      ['Periode Selesai', period.end || ''].map(_csvEscape).join(','),
+      '',
+      headers.map(_csvEscape).join(',')
+    ];
 
     rows.forEach((r, idx)=>{
       const calc = rowCalc(r);
