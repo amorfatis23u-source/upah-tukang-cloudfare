@@ -1980,89 +1980,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const WHATSAPP_BASE='https://web.whatsapp.com/send';
   const WHATSAPP_PHONE='6281210400168';
 
-  function formatCurrency(num){
-    let value = Number(num||0);
-    if(!Number.isFinite(value)) value = 0;
-    return 'Rp ' + value.toLocaleString('id-ID');
-  }
-
-  function formatHari(value){
-    if(typeof value!=='number') value = Number(value||0);
-    if(!Number.isFinite(value)) value = 0;
-    const opts = Number.isInteger(value) ? {} : { minimumFractionDigits: 1, maximumFractionDigits: 1 };
-    return value.toLocaleString('id-ID', opts);
-  }
-
-  function loadRumahOrder(){
+  function buildWhatsappCsvText(){
     try{
-      const raw = JSON.parse(localStorage.getItem('upah20_rumah'));
-      if(Array.isArray(raw)){
-        return raw.filter(item => item != null && String(item).trim().length)
-          .map(item => String(item));
+      const builder = typeof window.buildCsvSnapshot==='function' ? window.buildCsvSnapshot : (typeof buildCsvSnapshot==='function' ? buildCsvSnapshot : null);
+      if(builder){
+        const snapshot = builder();
+        const csv = snapshot && snapshot.csv;
+        if(csv){
+          return String(csv).replace(/\r?\n/g,'\n');
+        }
       }
     }catch(err){
-      console.warn('loadRumahOrder failed', err);
+      console.warn('buildWhatsappCsvText failed', err);
     }
-    return [];
-  }
-
-  function computeRekapWhatsapp(){
-    const rows=loadJSON(KEY_ROWS,[])||[];
-    const classRates=loadJSON(KEY_RATES,{"Senior":145000,"Tukang":130000,"Kenek":120000});
-    const map=new Map();
-    rows.forEach(r=>{
-      const rate=Number(classRates[r.kelas]||0);
-      const rumahList=Array.isArray(r.rumah)?r.rumah:[];
-      rumahList.forEach(entry=>{
-        if(!entry) return;
-        const label=String(entry);
-        const weight=(label==='1/2 Lain')?0.5:1;
-        const bucket=map.get(label)||{hari:0,upah:0};
-        bucket.hari+=weight;
-        bucket.upah+=rate*weight;
-        map.set(label,bucket);
-      });
-    });
-    const order=loadRumahOrder();
-    const keys=Array.from(map.keys()).sort((a,b)=>{
-      const ia=order.indexOf(a);
-      const ib=order.indexOf(b);
-      if(ia!==-1 && ib!==-1) return ia-ib;
-      if(ia!==-1) return -1;
-      if(ib!==-1) return 1;
-      return a.localeCompare(b,'id-ID');
-    });
-    return keys.map(name=>({name, ...map.get(name)}));
-  }
-
-  function buildWhatsappMessage(){
-    const ps=document.getElementById('periodStart');
-    const pe=document.getElementById('periodEnd');
-    const start=ps&&ps.value?ps.value:'';
-    const end=pe&&pe.value?pe.value:'';
-    const totals=computeTotals();
-    const rekap=computeRekapWhatsapp();
-    const lines=['*Rekap Upah 7 Hari*'];
-    if(start && end){
-      lines.push(`Periode: ${start} s/d ${end}`);
-    }else if(start){
-      lines.push(`Periode mulai ${start}`);
-    }
-    lines.push('');
-    lines.push(`Pekerja: ${totals.pekerja}`);
-    lines.push(`Total hari: ${formatHari(totals.sumHari)}`);
-    lines.push(`Upah pokok: ${formatCurrency(totals.sumPokok)}`);
-    lines.push(`Uang beras: ${formatCurrency(totals.sumBeras)}`);
-    lines.push(`Bonus: ${formatCurrency(totals.sumBonus)}`);
-    lines.push(`Total dibayarkan: ${formatCurrency(totals.sumTotal)}`);
-    if(rekap.length){
-      lines.push('');
-      lines.push('*Ringkasan per Rumah*');
-      rekap.forEach(item=>{
-        lines.push(`- ${item.name}: ${formatHari(item.hari)} hari • ${formatCurrency(item.upah)}`);
-      });
-    }
-    return lines.join('\n');
+    return '';
   }
 
   function openWhatsappWithText(){
@@ -2076,7 +2007,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try{
       const waUrl = new URL(WHATSAPP_BASE);
       waUrl.searchParams.set('phone', WHATSAPP_PHONE);
-      const message = buildWhatsappMessage();
+      const message = buildWhatsappCsvText();
       if(message){
         waUrl.searchParams.set('text', message);
       }
