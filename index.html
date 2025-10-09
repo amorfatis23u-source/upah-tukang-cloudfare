@@ -4,285 +4,130 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Upah Tukang — Dasbor</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/extra.css">
-  <script type="module">
-    import { api } from "./assets/js/config.js";
-    window.UpahAPI = window.UpahAPI || api();
-  </script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 1.5rem 1rem;
+    }
+    nav a {
+      color: #0f172a;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 999px;
+      padding: 0.5rem 1rem;
+      margin-right: 0.5rem;
+    }
+    nav a:hover {
+      border-color: #f97316;
+      color: #f97316;
+    }
+    main {
+      flex: 1;
+      padding: 2rem 1rem 3rem;
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      gap: 2rem;
+    }
+    section {
+      background: #fff;
+      border-radius: 1.25rem;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 2rem;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+    h1 { margin: 0; font-size: 1.75rem; }
+    h2 { margin-top: 0; font-size: 1.3rem; }
+    p { line-height: 1.5; }
+    footer {
+      border-top: 1px solid rgba(148, 163, 184, 0.2);
+      background: #fff;
+      padding: 1.5rem 1rem;
+      font-size: 0.85rem;
+      text-align: center;
+      color: #64748b;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border-radius: 999px;
+      padding: 0.65rem 1.4rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: #0f172a;
+      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+    }
+    .button.primary {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-color: #ea580c;
+      color: #fff;
+    }
+    .button.primary:hover {
+      filter: brightness(1.05);
+    }
+    .button:hover {
+      border-color: #f97316;
+      color: #f97316;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
-  <header class="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
-    <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+<body>
+  <header>
+    <div style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:0.75rem;">
       <div>
-        <p class="text-xs uppercase tracking-wide text-slate-400">Upah Tukang</p>
-        <h1 class="text-lg font-semibold">Dasbor</h1>
+        <p style="margin:0;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.16em;color:#64748b;">Upah Tukang</p>
+        <h1>Dasbor Ringkas</h1>
       </div>
-      <nav class="flex items-center gap-2 text-sm">
-        <a class="rounded-xl border border-slate-200 px-3 py-2 text-slate-600 hover:border-slate-300" href="rekap.html">Rekap</a>
-        <a class="rounded-xl border border-slate-200 px-3 py-2 text-slate-600 hover:border-slate-300" href="form.html">Isi Form</a>
-        <button id="btnNew" data-testid="dashboard-open-new" class="rounded-xl bg-orange-500 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
+      <nav>
+        <a href="form.html">Isi Form</a>
+        <a href="rekap.html">Lihat Rekap</a>
       </nav>
     </div>
   </header>
-
-  <main class="mx-auto max-w-6xl space-y-8 px-4 py-6">
-    <section class="grid gap-4 md:grid-cols-2">
-      <article class="rounded-2xl bg-white p-6 shadow-sm">
-        <h2 class="text-base font-semibold text-slate-900">Mulai Form Baru</h2>
-        <p class="mt-2 text-sm text-slate-500">Siapkan draft kosong dengan periode 7 hari ke depan. Data tersimpan otomatis di Cloudflare KV.</p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <button id="ctaNew" data-testid="dashboard-cta-new" class="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
-          <a href="form.html" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300">Lanjutkan Draft</a>
-        </div>
-      </article>
-      <article class="rounded-2xl bg-white p-6 shadow-sm">
-        <h2 class="text-base font-semibold text-slate-900">Rekap & Ekspor</h2>
-        <p class="mt-2 text-sm text-slate-500">Pantau seluruh snapshot, filter sesuai kebutuhan, dan ekspor ke CSV/XLSX untuk arsip.</p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <a href="rekap.html" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300">Buka Rekap</a>
-          <span class="badge">Autosave aktif</span>
-        </div>
-      </article>
+  <main>
+    <section>
+      <h2>Simpan Snapshot Form</h2>
+      <p>Gunakan halaman form untuk menyimpan data upah tukang dalam bentuk snapshot. Data otomatis disimpan ke Cloudflare KV melalui fungsi Pages.</p>
+      <div class="actions">
+        <a class="button primary" href="form.html">Buka Form</a>
+        <a class="button" href="https://developers.cloudflare.com/pages/" target="_blank" rel="noreferrer">Panduan Cloudflare Pages</a>
+      </div>
     </section>
-
-    <section class="rounded-2xl bg-white p-6 shadow-sm">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 class="text-base font-semibold text-slate-900">Snapshot Terbaru</h2>
-          <p class="text-sm text-slate-500">Menampilkan 10 entri terakhir dengan informasi periode, rumah, dan total upah.</p>
-        </div>
-        <div class="flex items-center gap-2 text-xs text-slate-500">
-          <span id="listInfo">Memuat...</span>
-        </div>
-      </div>
-      <div id="emptyState" class="hidden rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">Belum ada data tersimpan. Mulai dari tombol <strong>Form Baru</strong>.</div>
-      <div id="tableWrap" class="mt-4 table-scroll">
-        <table class="min-w-full text-sm">
-          <thead class="text-left text-slate-500">
-            <tr>
-              <th class="py-2 pr-4 font-medium">Periode</th>
-              <th class="py-2 pr-4 font-medium">Rumah</th>
-              <th class="py-2 pr-4 font-medium text-right">Total Upah</th>
-              <th class="py-2 pr-4 font-medium">Terakhir Disimpan</th>
-              <th class="py-2 pr-4 font-medium text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="listBody" class="divide-y divide-slate-100"></tbody>
-        </table>
-      </div>
-      <div id="skeleton" class="mt-4 space-y-2">
-        <div class="h-12 w-full skeleton"></div>
-        <div class="h-12 w-full skeleton"></div>
-        <div class="h-12 w-full skeleton"></div>
-      </div>
-      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-        <div class="flex items-center gap-2">
-          <button id="btnPrev" class="rounded-xl border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40">Sebelumnya</button>
-          <button id="btnNext" class="rounded-xl border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40">Berikutnya</button>
-        </div>
-        <span id="cursorInfo" class="text-xs text-slate-400"></span>
+    <section>
+      <h2>Kelola Snapshot</h2>
+      <p>Halaman rekap menampilkan daftar snapshot yang tersimpan. Anda dapat membuka isi snapshot atau menghapus entri lama secara langsung.</p>
+      <div class="actions">
+        <a class="button" href="rekap.html">Buka Rekap</a>
+        <a class="button" href="form.html">Form Baru</a>
       </div>
     </section>
   </main>
-
-  <footer class="border-t bg-white/80 py-4">
-    <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
-      <span>&copy; <span id="year"></span> Upah Tukang</span>
-      <span>Cloudflare Pages • KV binding <code>UPAH_KV</code></span>
-    </div>
+  <footer>
+    Cloudflare Pages • Binding KV <code>UPAH_KV</code>
   </footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
-  <script type="module">
-    import { utils, showToast, formatError, ensureApiClient } from './assets/js/upah-core.js';
-
-    const api = ensureApiClient();
-
-    const NEW_COUNTER_KEY = 'upahTukang:newCounter';
-
-    const YEAR = new Date().getFullYear();
-    document.getElementById('year').textContent = YEAR;
-
-    const state = {
-      currentCursor: '',
-      nextCursor: '',
-      history: [],
-      cache: new Map(),
-      loading: false,
-      listComplete: false
-    };
-
-    const tableBody = document.getElementById('listBody');
-    const skeleton = document.getElementById('skeleton');
-    const emptyState = document.getElementById('emptyState');
-    const cursorInfo = document.getElementById('cursorInfo');
-    const listInfo = document.getElementById('listInfo');
-
-    function buildKeyInfo(key, metadata = {}) {
-      const { start, end, rumah } = utils.parseSnapshotKey(key);
-      const periode = start && end ? `${start} – ${end}` : 'Tidak diketahui';
-      const rumahLabel = rumah || metadata.rumah || '—';
-      const total = metadata.total ?? metadata.totalUpah ?? null;
-      const updatedAt = metadata.updatedAt ? new Date(metadata.updatedAt).toLocaleString('id-ID') : '—';
-      const totalLabel = total != null ? utils.formatRupiah(total) : '—';
-      return { periode, rumah: rumahLabel, updatedAt, totalLabel };
-    }
-
-    function renderRows(keys = []) {
-      tableBody.innerHTML = '';
-      keys.forEach(({ name, metadata = {} }) => {
-        const info = buildKeyInfo(name, metadata || {});
-        const tr = document.createElement('tr');
-        tr.className = 'transition hover:bg-slate-50';
-        tr.dataset.testid = 'snapshot-row';
-        tr.innerHTML = `
-          <td class="py-3 pr-4 align-top">
-            <div class="font-medium text-slate-800">${info.periode}</div>
-            <div class="text-xs text-slate-400">${name}</div>
-          </td>
-          <td class="py-3 pr-4 align-top text-slate-700">${info.rumah}</td>
-          <td class="py-3 pr-4 align-top text-right font-medium text-slate-800">${info.totalLabel}</td>
-          <td class="py-3 pr-4 align-top text-slate-600">${info.updatedAt}</td>
-          <td class="py-3 pl-4 text-right">
-            <div class="flex justify-end gap-2">
-              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="form.html?key=${encodeURIComponent(name)}">Buka</a>
-              <button class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-testid="dashboard-delete" data-key="${name}">Hapus</button>
-            </div>
-          </td>
-        `;
-        tableBody.appendChild(tr);
-      });
-    }
-
-    function resetPagination() {
-      state.currentCursor = '';
-      state.nextCursor = '';
-      state.listComplete = false;
-      state.history = [];
-      state.cache.clear();
-    }
-
-    async function showPage(cursor = '') {
-      if (state.loading) return false;
-      const cached = state.cache.get(cursor);
-      if (!cached) {
-        tableBody.innerHTML = '';
-        skeleton.classList.remove('hidden');
-        listInfo.textContent = 'Memuat data...';
-      } else {
-        skeleton.classList.add('hidden');
-      }
-      emptyState.classList.add('hidden');
-
-      try {
-        state.loading = true;
-        const payload = cached || await api.listSnapshots('ut:snap:', cursor, 15);
-        if (!cached) {
-          state.cache.set(cursor, payload);
-        }
-        const { keys = [], cursor: nextCursor = '', list_complete } = payload;
-        skeleton.classList.add('hidden');
-
-        if (!keys.length && !cursor && !nextCursor) {
-          tableBody.innerHTML = '';
-          emptyState.classList.remove('hidden');
-          listInfo.textContent = 'Belum ada snapshot';
-          cursorInfo.textContent = '';
-          state.currentCursor = '';
-          state.nextCursor = '';
-          state.listComplete = true;
-          document.getElementById('btnPrev').disabled = true;
-          document.getElementById('btnNext').disabled = true;
-          return true;
-        }
-
-        renderRows(keys.slice(0, 10));
-        state.currentCursor = cursor;
-        state.nextCursor = nextCursor || '';
-        state.listComplete = !!list_complete || (!state.nextCursor && keys.length < 15);
-
-        cursorInfo.textContent = state.listComplete
-          ? 'Sudah halaman terakhir'
-          : (state.nextCursor ? `Cursor ${state.nextCursor.slice(0, 8)}…` : '');
-        listInfo.textContent = `${Math.min(keys.length, 10)} dari ${keys.length} entri halaman ini`;
-
-        document.getElementById('btnPrev').disabled = state.history.length === 0;
-        document.getElementById('btnNext').disabled = state.listComplete;
-        return true;
-      } catch (err) {
-        skeleton.classList.add('hidden');
-        emptyState.classList.add('hidden');
-        showToast(formatError(err), 'error');
-        listInfo.textContent = 'Gagal memuat data';
-        return false;
-      } finally {
-        state.loading = false;
-      }
-    }
-
-    document.getElementById('btnPrev').addEventListener('click', async () => {
-      if (!state.history.length) return;
-      const target = state.history[state.history.length - 1];
-      const ok = await showPage(target);
-      if (ok) {
-        state.history.pop();
-      }
-    });
-
-    document.getElementById('btnNext').addEventListener('click', async () => {
-      if (state.listComplete && !state.nextCursor) return;
-      const target = state.nextCursor;
-      const previous = state.currentCursor;
-      const ok = await showPage(target);
-      if (ok) {
-        state.history.push(previous);
-      }
-    });
-
-    document.addEventListener('click', async (event) => {
-      const target = event.target;
-      if (target.matches('button[data-key]')) {
-        const key = target.getAttribute('data-key');
-        const confirmed = window.confirm('Hapus snapshot ini? Data tidak dapat dikembalikan.');
-        if (!confirmed) return;
-        try {
-          await api.deleteKey(key);
-          showToast('Snapshot dihapus', 'success');
-          resetPagination();
-          await showPage('');
-        } catch (err) {
-          showToast(formatError(err), 'error');
-        }
-      }
-    });
-
-    function nextNewIndex() {
-      try {
-        const current = Number(window.localStorage.getItem(NEW_COUNTER_KEY) || '0');
-        const next = Number.isFinite(current) ? current + 1 : 1;
-        window.localStorage.setItem(NEW_COUNTER_KEY, String(next));
-        return next;
-      } catch (err) {
-        console.warn('gagal membaca counter new form', err);
-        return Math.floor(Date.now() / 1000);
-      }
-    }
-
-    function openNewForm() {
-      const index = nextNewIndex();
-      const url = new URL('form.html', window.location.href);
-      url.searchParams.set('new', String(index));
-      window.location.href = url.toString();
-    }
-
-    document.getElementById('btnNew').addEventListener('click', openNewForm);
-    document.getElementById('ctaNew').addEventListener('click', openNewForm);
-
-    showPage('');
-  </script>
 </body>
 </html>
