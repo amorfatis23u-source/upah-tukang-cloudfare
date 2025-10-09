@@ -1462,36 +1462,42 @@ const upahPokok = hari * rate;
     }
   }
 
+  function buildCsvSnapshot(){
+    const headers = [
+      'No','Nama','Kelas','Group','Rate',
+      ...displayDayKeys, 'Hari','Upah Pokok','Uang Beras','Total','Keterangan'
+    ];
+    const lines = [ headers.map(_csvEscape).join(',') ];
+
+    rows.forEach((r, idx)=>{
+      const calc = rowCalc(r);
+      const rowVals = [
+        idx+1,
+        r.nama||'',
+        r.kelas||'',
+        r.group||'',
+        calc.rate||0,
+        ...displayDayOrder.map(di=> (r.rumah||[])[di]||''),
+        calc.hari||0,
+        calc.upahPokok||0,
+        calc.uangBeras||0,
+        calc.totalBayar||0,
+        r.ket||''
+      ];
+
+      lines.push(rowVals.map(_csvEscape).join(','));
+    });
+
+    const csv = lines.join('\r\n');
+    return { csv, filename: _timestampName('upah7hari', 'csv') };
+  }
+  window.buildCsvSnapshot = buildCsvSnapshot;
+
   // Export CSV (tampilan tabel pekerja)
   function downloadCSV(){
     try{
-      const headers = [
-        'No','Nama','Kelas','Group','Rate',
-        ...displayDayKeys, 'Hari','Upah Pokok','Uang Beras','Total','Keterangan'
-      ];
-      const lines = [ headers.map(_csvEscape).join(',') ];
-
-      rows.forEach((r, idx)=>{
-        const calc = rowCalc(r);
-        const rowVals = [
-          idx+1,
-          r.nama||'',
-          r.kelas||'',
-          r.group||'',
-          calc.rate||0,
-          ...displayDayOrder.map(di=> (r.rumah||[])[di]||''),
-          calc.hari||0,
-          calc.upahPokok||0,
-          calc.uangBeras||0,
-          calc.totalBayar||0,
-          r.ket||''
-        ];
-        
-        lines.push(rowVals.map(_csvEscape).join(','));
-      });
-
-      const csv = lines.join('\r\n');
-      _downloadBlob(csv, 'text/csv;charset=utf-8', _timestampName('upah7hari', 'csv'));
+      const { csv, filename } = buildCsvSnapshot();
+      _downloadBlob(csv, 'text/csv;charset=utf-8', filename);
     }catch(err){
       console.error(err);
       alert('Gagal mengekspor CSV: ' + err.message);
@@ -1971,13 +1977,73 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const INDEX_URL=new URL('./index.html', window.location.href).href;
-  const WHATSAPP_URL='https://web.whatsapp.com/send?phone=6281210400168';
+  const WHATSAPP_BASE='https://web.whatsapp.com/send';
+  const WHATSAPP_PHONE='6281210400168';
+
+  function openWhatsappWithCsv(){
+    let targetUrl=null;
+    try{
+      if(typeof window.buildCsvSnapshot!=='function'){
+        throw new Error('buildCsvSnapshot tidak tersedia');
+      }
+      const snapshot = window.buildCsvSnapshot();
+      if(!snapshot || !snapshot.csv){
+        throw new Error('CSV kosong');
+      }
+      const {csv, filename} = snapshot;
+      let dataUrl='';
+      try{
+        if(typeof btoa==='function'){
+          if(typeof TextEncoder!=='undefined'){
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(csv);
+            const chunkSize = 0x8000;
+            let binary = '';
+            for(let i=0;i<bytes.length;i+=chunkSize){
+              const sub = bytes.subarray(i, i+chunkSize);
+              let chunkStr='';
+              for(let j=0;j<sub.length;j++){
+                chunkStr += String.fromCharCode(sub[j]);
+              }
+              binary += chunkStr;
+            }
+            dataUrl = 'data:text/csv;base64,' + btoa(binary);
+          }else{
+            dataUrl = 'data:text/csv;base64,' + btoa(unescape(encodeURIComponent(csv)));
+          }
+        }
+      }catch(baseErr){
+        console.warn('Gagal encode CSV ke base64', baseErr);
+        dataUrl='';
+      }
+      if(!dataUrl){
+        dataUrl = 'data:text/csv,' + encodeURIComponent(csv);
+      }
+      const message = `Berikut CSV tersimpan (${filename}):\n${dataUrl}`;
+      const waUrl = new URL(WHATSAPP_BASE);
+      waUrl.searchParams.set('phone', WHATSAPP_PHONE);
+      waUrl.searchParams.set('text', message);
+      targetUrl = waUrl.toString();
+    }catch(err){
+      console.warn('Gagal menyiapkan tautan CSV WhatsApp', err);
+      const fallback = new URL(WHATSAPP_BASE);
+      fallback.searchParams.set('phone', WHATSAPP_PHONE);
+      targetUrl = fallback.toString();
+    }
+    try{
+      if(targetUrl){
+        window.open(targetUrl, '_blank', 'noopener');
+      }
+    }catch(openErr){
+      console.warn('Gagal membuka WhatsApp Web', openErr);
+    }
+  }
 
   function goToIndexAndWhatsapp(){
     try{
-      window.open(WHATSAPP_URL, '_blank', 'noopener');
+      openWhatsappWithCsv();
     }catch(err){
-      console.warn('Gagal membuka WhatsApp Web', err);
+      console.warn('openWhatsappWithCsv error', err);
     }
     try{
       window.location.href = INDEX_URL;
