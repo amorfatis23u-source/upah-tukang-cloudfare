@@ -4,24 +4,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type'
 };
 
+function kvMissingResponse() {
+  return new Response(JSON.stringify({ ok: false, error: 'KV binding UPAH_KV not found' }), {
+    status: 500,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders }
+  });
+}
+
+export function onRequestOptions() {
+  return new Response(null, { headers: corsHeaders });
+}
+
 export async function onRequestGet({ request, env }) {
-  if (request.method.toUpperCase() === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (request.method.toUpperCase() !== 'GET') {
-    return new Response(JSON.stringify({ ok: false, error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders }
-    });
-  }
-
   const kv = env?.UPAH_KV;
   if (!kv) {
-    return new Response(JSON.stringify({ ok: false, error: 'KV binding UPAH_KV not found' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders }
-    });
+    return kvMissingResponse();
   }
 
   const url = new URL(request.url);
@@ -57,5 +54,3 @@ export async function onRequestGet({ request, env }) {
     });
   }
 }
-
-export const onRequest = onRequestGet;
