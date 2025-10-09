@@ -247,21 +247,6 @@
       flex-direction: column;
       gap: 0.75rem;
     }
-    .totals-floating {
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(220px, 1.1fr) auto;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .totals-floating .total-chip {
-      height: 100%;
-    }
-    .totals-floating .totals-actions {
-      justify-content: flex-end;
-    }
-    .totals-floating .totals-actions .btn {
-      white-space: nowrap;
-    }
     .totals-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -618,25 +603,12 @@
       .section-header { flex-direction: column; align-items: stretch; }
       .totals-panel {
         position: sticky;
-        top: calc(0.75rem + var(--safe-area-inset-top, 0px));
-        z-index: 35;
-        margin: -1.35rem -1.35rem 0;
-        padding: 1rem 1.1rem 1.15rem;
-        backdrop-filter: blur(14px);
-        box-shadow: 0 16px 32px rgba(15,23,42,0.22);
-        border: 1px solid rgba(148,163,184,0.32);
-        border-radius: calc(var(--radius-lg) + 6px);
+        bottom: 1rem;
+        z-index: 30;
+        margin: 0 -0.5rem;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 -12px 32px rgba(15,23,42,0.18);
       }
-      .totals-floating {
-        grid-template-columns: 1fr;
-      }
-      .totals-floating .totals-actions {
-        justify-content: stretch;
-      }
-      .totals-floating .totals-actions .btn {
-        width: 100%;
-      }
-      .search-field { width: 100%; }
     }
   </style>
 </head>
@@ -660,6 +632,10 @@
         <div>
           <h2>Periode &amp; Aksi</h2>
           <p class="muted">Setel rentang tanggal kerja lalu simpan atau ekspor data.</p>
+        </div>
+        <div class="field search-field">
+          <label class="muted" for="searchName">Cari Pekerja</label>
+          <input id="searchName" type="search" class="input" placeholder="Cari nama pekerja…" autocomplete="off">
         </div>
       </div>
       <div id="mainActionsFixed" class="stack action-shell">
@@ -699,19 +675,6 @@
         </div>
       </div>
       <div class="totals-panel no-print">
-        <div class="totals-floating">
-          <div class="total-chip highlight">
-            <span class="label">Total Bayar</span>
-            <span id="pillTotal" class="value">Rp 0</span>
-          </div>
-          <div class="field search-field">
-            <label class="muted" for="searchName">Cari Pekerja</label>
-            <input id="searchName" type="search" class="input" placeholder="Cari nama pekerja…" autocomplete="off">
-          </div>
-          <div class="totals-actions">
-            <button class="btn ghost" onclick="setView(toggleView())">Ganti Mode</button>
-          </div>
-        </div>
         <div class="totals-grid">
           <div class="total-chip">
             <span class="label">Total Hari</span>
@@ -725,6 +688,13 @@
             <span class="label">Uang Beras</span>
             <span id="pillBeras" class="value">Rp 0</span>
           </div>
+          <div class="total-chip highlight">
+            <span class="label">Total Bayar</span>
+            <span id="pillTotal" class="value">Rp 0</span>
+          </div>
+        </div>
+        <div class="totals-actions">
+          <button class="btn ghost" onclick="setView(toggleView())">Ganti Mode</button>
         </div>
       </div>
     </section>
@@ -2100,8 +2070,6 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 </script>
 
-<script type="module" src="/assets/js/config.js"></script>
-
 <script type="module">
   import { ensureApiClient, buildSnapshotKey, summarizeRows, showToast, formatError } from './assets/js/upah-core.js';
 
@@ -2517,32 +2485,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('change', scheduleSave);
 
   window.upahAutosave = { key: formKey, storageKey: AUTOKEY };
-</script>
-
-<script type="module">
-  import { saveSnapshot } from '/assets/js/config.js';
-
-  const form = document.querySelector('form');
-  form?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const fd = new FormData(form);
-    const data = Object.fromEntries(fd.entries());
-    data.form_id = data.form_id || 'upah-tukang-7hari';
-    data.periodeStart = data.periodeStart || '';
-    data.periodeEnd = data.periodeEnd || '';
-    data.rumah = data.rumah || '';
-
-    try {
-      const res = await saveSnapshot(data);
-      if (res?.ok) {
-        alert(`Tersimpan sebagai: ${res.key}`);
-      } else {
-        alert(`Gagal: ${res?.error || 'Tidak diketahui'}`);
-      }
-    } catch (err) {
-      alert(`Gagal: ${err?.message || err}`);
-    }
-  });
 </script>
 
 </body>
