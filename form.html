@@ -1987,7 +1987,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const snapshot = builder();
         const csv = snapshot && snapshot.csv;
         if(csv){
-          return String(csv).replace(/\r?\n/g,'\n');
+          const normalized = String(csv);
+          // Pastikan format baris mengikuti file CSV yang diunduh (CRLF)
+          return /\r\n/.test(normalized) ? normalized : normalized.replace(/\n/g, '\r\n');
         }
       }
     }catch(err){
