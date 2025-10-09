@@ -63,6 +63,11 @@ function createMockKV() {
       };
     },
 
+    async get(key, options = {}) {
+      const record = await this.getWithMetadata(key, options);
+      return record ? record.value : null;
+    },
+
     async put(key, value, options = {}) {
       const metadata = options?.metadata || {};
       store.set(key, { value, metadata });
