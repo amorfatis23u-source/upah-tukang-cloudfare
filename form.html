@@ -2100,6 +2100,8 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 </script>
 
+<script type="module" src="/assets/js/config.js"></script>
+
 <script type="module">
   import { ensureApiClient, buildSnapshotKey, summarizeRows, showToast, formatError } from './assets/js/upah-core.js';
 
@@ -2515,6 +2517,32 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('change', scheduleSave);
 
   window.upahAutosave = { key: formKey, storageKey: AUTOKEY };
+</script>
+
+<script type="module">
+  import { saveSnapshot } from '/assets/js/config.js';
+
+  const form = document.querySelector('form');
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    data.form_id = data.form_id || 'upah-tukang-7hari';
+    data.periodeStart = data.periodeStart || '';
+    data.periodeEnd = data.periodeEnd || '';
+    data.rumah = data.rumah || '';
+
+    try {
+      const res = await saveSnapshot(data);
+      if (res?.ok) {
+        alert(`Tersimpan sebagai: ${res.key}`);
+      } else {
+        alert(`Gagal: ${res?.error || 'Tidak diketahui'}`);
+      }
+    } catch (err) {
+      alert(`Gagal: ${err?.message || err}`);
+    }
+  });
 </script>
 
 </body>
