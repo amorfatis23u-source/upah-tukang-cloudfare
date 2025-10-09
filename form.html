@@ -666,7 +666,7 @@
           </div>
         </div>
         <div class="row">
-          <button class="btn" data-testid="form-save" onclick="try{saveAll&&saveAll()}catch(_){ if (typeof save==='function') save('rows', window.rows); else alert('Fungsi simpan tidak tersedia'); }">Simpan</button>
+          <button class="btn" data-testid="form-save" onclick="handleSaveAndRedirect(event)">Simpan</button>
           <button class="btn" onclick="window.print()">Cetak</button>
           <button class="btn" onclick="try{downloadCSV&&downloadCSV()}catch(_){alert('downloadCSV tidak ditemukan')}">Unduh CSV</button>
           <button class="btn" onclick="try{downloadJSON&&downloadJSON()}catch(_){alert('downloadJSON tidak ditemukan')}">Unduh JSON</button>
@@ -1462,36 +1462,42 @@ const upahPokok = hari * rate;
     }
   }
 
+  function buildCsvSnapshot(){
+    const headers = [
+      'No','Nama','Kelas','Group','Rate',
+      ...displayDayKeys, 'Hari','Upah Pokok','Uang Beras','Total','Keterangan'
+    ];
+    const lines = [ headers.map(_csvEscape).join(',') ];
+
+    rows.forEach((r, idx)=>{
+      const calc = rowCalc(r);
+      const rowVals = [
+        idx+1,
+        r.nama||'',
+        r.kelas||'',
+        r.group||'',
+        calc.rate||0,
+        ...displayDayOrder.map(di=> (r.rumah||[])[di]||''),
+        calc.hari||0,
+        calc.upahPokok||0,
+        calc.uangBeras||0,
+        calc.totalBayar||0,
+        r.ket||''
+      ];
+
+      lines.push(rowVals.map(_csvEscape).join(','));
+    });
+
+    const csv = lines.join('\r\n');
+    return { csv, filename: _timestampName('upah7hari', 'csv') };
+  }
+  window.buildCsvSnapshot = buildCsvSnapshot;
+
   // Export CSV (tampilan tabel pekerja)
   function downloadCSV(){
     try{
-      const headers = [
-        'No','Nama','Kelas','Group','Rate',
-        ...displayDayKeys, 'Hari','Upah Pokok','Uang Beras','Total','Keterangan'
-      ];
-      const lines = [ headers.map(_csvEscape).join(',') ];
-
-      rows.forEach((r, idx)=>{
-        const calc = rowCalc(r);
-        const rowVals = [
-          idx+1,
-          r.nama||'',
-          r.kelas||'',
-          r.group||'',
-          calc.rate||0,
-          ...displayDayOrder.map(di=> (r.rumah||[])[di]||''),
-          calc.hari||0,
-          calc.upahPokok||0,
-          calc.uangBeras||0,
-          calc.totalBayar||0,
-          r.ket||''
-        ];
-        
-        lines.push(rowVals.map(_csvEscape).join(','));
-      });
-
-      const csv = lines.join('\r\n');
-      _downloadBlob(csv, 'text/csv;charset=utf-8', _timestampName('upah7hari', 'csv'));
+      const { csv, filename } = buildCsvSnapshot();
+      _downloadBlob(csv, 'text/csv;charset=utf-8', filename);
     }catch(err){
       console.error(err);
       alert('Gagal mengekspor CSV: ' + err.message);
@@ -1929,7 +1935,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 })();
 </script>
-<!-- Injected: Weekly summary save + auto-close on Save -->
+<!-- Injected: Weekly summary save + redirect to index & WhatsApp on Save -->
 <script>
 (function(){
   const KEY_ROWS='upah20_rows', KEY_RATES='upah20_classRates', KEY_THRESH='upah20_beras_threshold', KEY_AMT='upah20_beras_amount', KEY_HISTORY='upah20_period_history_v2';
@@ -1957,20 +1963,126 @@ document.addEventListener('DOMContentLoaded', () => {
     const arr=loadJSON(KEY_HISTORY,[]); const idx=arr.findIndex(x=>x.periodeMulai===rec.periodeMulai); if(idx>=0)arr[idx]=rec; else arr.push(rec);
     localStorage.setItem(KEY_HISTORY, JSON.stringify(arr));
   }
-  // Patch saveAll if exists
+  // Patch saveAll if exists so histori mingguan tetap tersimpan
   const _orig=window.saveAll;
   window.saveAll=function(){
-    try{ if(typeof _orig==='function') _orig(); }catch(e){}
-    try{ saveWeeklyToHistory(); }catch(e){}
-    setTimeout(function(){ try{window.close();}catch(_){}
-      setTimeout(function(){ try{window.location.replace('about:blank');}catch(_){} },200);
-    },150);
+    let result;
+    try{
+      if(typeof _orig==='function') result=_orig();
+    }catch(e){
+      console.warn('saveAll original error', e);
+    }
+    try{ saveWeeklyToHistory(); }catch(e){ console.warn('saveWeeklyToHistory error', e); }
+    return result;
   };
-  // Robust hook for any "Simpan" button
-  window.addEventListener('DOMContentLoaded', function(){
-    const btns=Array.from(document.querySelectorAll('button,[role="button"]')).filter(b=>/simpan/i.test(b.textContent||''));
-    btns.forEach(b=>b.addEventListener('click', ()=>{ setTimeout(saveWeeklyToHistory,100); setTimeout(()=>{try{window.close();}catch(_){}} ,250); }, {capture:true}));
-  });
+
+  const INDEX_URL=new URL('./index.html', window.location.href).href;
+  const WHATSAPP_BASE='https://web.whatsapp.com/send';
+  const WHATSAPP_PHONE='6281210400168';
+
+  function buildWhatsappCsvText(){
+    try{
+      const builder = typeof window.buildCsvSnapshot==='function' ? window.buildCsvSnapshot : (typeof buildCsvSnapshot==='function' ? buildCsvSnapshot : null);
+      if(builder){
+        const snapshot = builder();
+        const csv = snapshot && snapshot.csv;
+        if(csv){
+          const normalized = String(csv);
+          // Pastikan format baris mengikuti file CSV yang diunduh (CRLF)
+          return /\r\n/.test(normalized) ? normalized : normalized.replace(/\n/g, '\r\n');
+        }
+      }
+    }catch(err){
+      console.warn('buildWhatsappCsvText failed', err);
+    }
+    return '';
+  }
+
+  function buildWhatsappUrl(){
+    try{
+      const waUrl = new URL(WHATSAPP_BASE);
+      waUrl.searchParams.set('phone', WHATSAPP_PHONE);
+      const message = buildWhatsappCsvText();
+      if(message){
+        waUrl.searchParams.set('text', message);
+      }
+      return waUrl.toString();
+    }catch(err){
+      console.warn('Gagal menyusun URL WhatsApp', err);
+      try{
+        const fallback = new URL(WHATSAPP_BASE);
+        fallback.searchParams.set('phone', WHATSAPP_PHONE);
+        return fallback.toString();
+      }catch(fallbackErr){
+        console.warn('Fallback URL WhatsApp gagal', fallbackErr);
+      }
+    }
+    return WHATSAPP_BASE;
+  }
+
+  function openWhatsappWithText(){
+    const target = buildWhatsappUrl();
+    let opened = false;
+    try{
+      const newWindow = window.open(target, '_blank', 'noopener');
+      if(newWindow){
+        newWindow.opener = null;
+        opened = true;
+      }
+    }catch(err){
+      console.warn('Gagal membuka tab WhatsApp baru', err);
+    }
+    if(!opened){
+      try{
+        window.open(target, '_self');
+      }catch(openErr){
+        console.warn('Gagal menggunakan fallback WhatsApp', openErr);
+      }
+    }
+  }
+
+  async function goToIndexAndWhatsapp(){
+    try{
+      openWhatsappWithText();
+    }catch(err){
+      console.warn('openWhatsappWithText error', err);
+    }
+    try{
+      window.location.href = INDEX_URL;
+    }catch(err){
+      try{ window.location.assign(INDEX_URL); }
+      catch(assignErr){ console.warn('Gagal menuju index.html', assignErr); }
+    }
+  }
+
+  window.handleSaveAndRedirect=function(event){
+    if(event && typeof event.preventDefault==='function') event.preventDefault();
+    const finalize = ()=> goToIndexAndWhatsapp();
+    const handleFailure = (err)=>{
+      console.error('Simpan gagal', err);
+      alert('Fungsi simpan tidak tersedia');
+    };
+
+    try{
+      if(typeof window.saveAll==='function'){
+        const result=window.saveAll();
+        if(result && typeof result.then==='function'){
+          result.then(()=>finalize()).catch(err=>{ console.warn('saveAll promise rejected', err); return finalize(); });
+        } else {
+          finalize();
+        }
+        return;
+      }
+      if(typeof window.save==='function'){
+        window.save('rows', window.rows);
+        finalize();
+        return;
+      }
+      handleFailure(new Error('saveAll tidak tersedia'));
+    }catch(err){
+      handleFailure(err);
+    }
+  };
   // Auto "Kosongkan" when ?new=N
   (function(){
     const p=new URLSearchParams(location.search); const hasNew=p.has('new')||(location.hash||'').toLowerCase().includes('new');
@@ -2022,7 +2134,12 @@ document.addEventListener('DOMContentLoaded', () => {
   (function extendSave(){
     const _origSaveAll = window.saveAll;
     window.saveAll = function(){
-      try { if (typeof _origSaveAll === 'function') _origSaveAll(); } catch(e){}
+      let result;
+      try {
+        if (typeof _origSaveAll === 'function') {
+          result = _origSaveAll();
+        }
+      } catch(e){ console.warn('extendSave original saveAll error', e); }
       try {
         const ps=document.getElementById('periodStart'), pe=document.getElementById('periodEnd');
         const start=ps&&ps.value?ps.value:''; if(!start) return;
@@ -2043,6 +2160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const idx = hist.findIndex(x => x.periodeMulai === start);
         if (idx >= 0) { hist[idx].hasSnap = true; saveJSON(KEY_HISTORY, hist); }
       } catch(e){ console.warn('Snapshot save failed', e); }
+      return result;
     };
   })();
 
