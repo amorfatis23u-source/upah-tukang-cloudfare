@@ -33,7 +33,7 @@
 
   <main class="mx-auto max-w-6xl space-y-8 px-4 py-6">
     <section class="rounded-2xl bg-white p-6 shadow-sm">
-      <div class="grid gap-4 lg:grid-cols-4">
+      <div class="grid gap-4 lg:grid-cols-3">
         <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Periode Mulai
           <input id="filterStart" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
@@ -41,10 +41,6 @@
         <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Periode Selesai
           <input id="filterEnd" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
-        </label>
-        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Rumah
-          <input id="filterRumah" type="text" placeholder="BlokA" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
         </label>
         <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Pencarian Bebas
@@ -56,19 +52,6 @@
         <span class="text-slate-300">•</span>
         <button id="btnReset" class="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:border-slate-300">Reset Filter</button>
       </div>
-    </section>
-
-    <section class="grid gap-4 md:grid-cols-2">
-      <article class="rounded-2xl bg-white p-6 shadow-sm">
-        <h2 class="text-base font-semibold text-slate-900">Total per Rumah</h2>
-        <p class="text-xs text-slate-500">Akumulasi total upah per rumah berdasarkan filter saat ini.</p>
-        <ul id="summaryRumah" class="mt-3 space-y-2 text-sm text-slate-700"></ul>
-      </article>
-      <article class="rounded-2xl bg-white p-6 shadow-sm">
-        <h2 class="text-base font-semibold text-slate-900">Total per Hari</h2>
-        <p class="text-xs text-slate-500">Akumulasi total upah berdasarkan tanggal mulai (periode).</p>
-        <ul id="summaryHari" class="mt-3 space-y-2 text-sm text-slate-700"></ul>
-      </article>
     </section>
 
     <section class="rounded-2xl bg-white p-6 shadow-sm">
@@ -90,9 +73,7 @@
           <thead class="text-left text-slate-500">
             <tr>
               <th class="py-2 pr-4 font-medium">Periode</th>
-              <th class="py-2 pr-4 font-medium">Rumah</th>
               <th class="py-2 pr-4 font-medium text-right">Total Upah</th>
-              <th class="py-2 pr-4 font-medium text-right">Total Hari</th>
               <th class="py-2 pr-4 font-medium">Terakhir Disimpan</th>
               <th class="py-2 pl-4 font-medium text-right">Aksi</th>
             </tr>
@@ -149,7 +130,6 @@
     const filterControls = {
       start: document.getElementById('filterStart'),
       end: document.getElementById('filterEnd'),
-      rumah: document.getElementById('filterRumah'),
       search: document.getElementById('filterSearch')
     };
 
@@ -266,13 +246,11 @@
     function applyFilter() {
       const startVal = filterControls.start.value;
       const endVal = filterControls.end.value;
-      const rumahVal = filterControls.rumah.value.trim().toLowerCase();
       const searchVal = filterControls.search.value.trim().toLowerCase();
 
       state.filtered = state.all.filter((item) => {
         if (startVal && (!item.start || item.start < startVal)) return false;
         if (endVal && (!item.end || item.end > endVal)) return false;
-        if (rumahVal && !String(item.rumah || '').toLowerCase().includes(rumahVal)) return false;
         if (searchVal) {
           const haystack = [item.key, item.rumah, item.start, item.end].join(' ').toLowerCase();
           if (!haystack.includes(searchVal)) return false;
@@ -298,7 +276,6 @@
         totalInfo.textContent = '0 snapshot';
         pageInfo.textContent = 'Halaman 0';
         cursorInfo.textContent = '';
-        renderSummaries([]);
         return;
       }
       tableSkeleton.classList.add('hidden');
@@ -316,9 +293,7 @@
             <div class="font-medium text-slate-800">${periode}</div>
             <div class="text-xs text-slate-400">${item.key}</div>
           </td>
-          <td class="py-3 pr-4 align-top text-slate-700">${item.rumah || '—'}</td>
           <td class="py-3 pr-4 align-top text-right font-medium text-slate-800">${utils.formatRupiah(item.total || 0)}</td>
-          <td class="py-3 pr-4 align-top text-right text-slate-600">${utils.formatNumber(item.totalDays || 0)}</td>
           <td class="py-3 pr-4 align-top text-slate-600">${updated}</td>
           <td class="py-3 pl-4 text-right">
             <div class="flex justify-end gap-2">
@@ -336,24 +311,6 @@
       document.getElementById('btnPrev').disabled = state.page <= 1;
       document.getElementById('btnNext').disabled = state.page >= totalPages;
       cursorInfo.textContent = `${rows.length} baris ditampilkan`;
-      renderSummaries(state.filtered);
-    }
-
-    function renderSummaries(records) {
-      const byRumah = new Map();
-      const byHari = new Map();
-      records.forEach((item) => {
-        const rumahKey = item.rumah || 'Tanpa label';
-        byRumah.set(rumahKey, (byRumah.get(rumahKey) || 0) + (item.total || 0));
-        const hariKey = item.start || 'Tanpa tanggal';
-        byHari.set(hariKey, (byHari.get(hariKey) || 0) + (item.total || 0));
-      });
-
-      const rumahList = Array.from(byRumah.entries()).sort((a, b) => b[1] - a[1]).map(([rumah, total]) => `<li class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2"><span>${rumah}</span><span class="font-semibold">${utils.formatRupiah(total)}</span></li>`);
-      const hariList = Array.from(byHari.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([hari, total]) => `<li class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2"><span>${hari}</span><span class="font-semibold">${utils.formatRupiah(total)}</span></li>`);
-
-      document.getElementById('summaryRumah').innerHTML = rumahList.length ? rumahList.join('') : '<li class="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">Tidak ada data</li>';
-      document.getElementById('summaryHari').innerHTML = hariList.length ? hariList.join('') : '<li class="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">Tidak ada data</li>';
     }
 
     document.getElementById('btnPrev').addEventListener('click', () => {
@@ -372,7 +329,6 @@
     document.getElementById('btnReset').addEventListener('click', () => {
       filterControls.start.value = '';
       filterControls.end.value = '';
-      filterControls.rumah.value = '';
       filterControls.search.value = '';
       applyFilter();
     });
@@ -406,33 +362,11 @@
         No: idx + 1,
         Key: item.key,
         Periode: `${item.start} s/d ${item.end}`,
-        Rumah: item.rumah,
         TotalUpah: item.total,
-        TotalHari: item.totalDays,
         UpdatedAt: item.updatedAt
       }));
-      const rumahSheet = [];
-      const rumahAcc = new Map();
-      state.filtered.forEach((item) => {
-        const key = item.rumah || 'Tanpa label';
-        rumahAcc.set(key, (rumahAcc.get(key) || 0) + (item.total || 0));
-      });
-      rumahAcc.forEach((total, rumah) => {
-        rumahSheet.push({ Rumah: rumah, TotalUpah: total });
-      });
-      const hariAcc = new Map();
-      state.filtered.forEach((item) => {
-        const key = item.start || 'Tanpa tanggal';
-        hariAcc.set(key, (hariAcc.get(key) || 0) + (item.total || 0));
-      });
-      const hariSheet = [];
-      hariAcc.forEach((total, hari) => {
-        hariSheet.push({ PeriodeMulai: hari, TotalUpah: total });
-      });
       utils.toXLSX('rekap_upah.xlsx', {
-        Snapshot: rows,
-        'Total per Rumah': rumahSheet,
-        'Total per Hari': hariSheet
+        Snapshot: rows
       });
       showToast('File XLSX dibuat', 'success');
     });
@@ -446,9 +380,7 @@
         No: idx + 1,
         Key: item.key,
         Periode: `${item.start} s/d ${item.end}`,
-        Rumah: item.rumah,
         TotalUpah: item.total,
-        TotalHari: item.totalDays,
         UpdatedAt: item.updatedAt
       }));
       utils.toCSV('rekap_upah.csv', rows);
