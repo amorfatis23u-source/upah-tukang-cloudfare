@@ -1993,12 +1993,55 @@ document.addEventListener('DOMContentLoaded', () => {
     return value.toLocaleString('id-ID', opts);
   }
 
+  function loadRumahOrder(){
+    try{
+      const raw = JSON.parse(localStorage.getItem('upah20_rumah'));
+      if(Array.isArray(raw)){
+        return raw.filter(item => item != null && String(item).trim().length)
+          .map(item => String(item));
+      }
+    }catch(err){
+      console.warn('loadRumahOrder failed', err);
+    }
+    return [];
+  }
+
+  function computeRekapWhatsapp(){
+    const rows=loadJSON(KEY_ROWS,[])||[];
+    const classRates=loadJSON(KEY_RATES,{"Senior":145000,"Tukang":130000,"Kenek":120000});
+    const map=new Map();
+    rows.forEach(r=>{
+      const rate=Number(classRates[r.kelas]||0);
+      const rumahList=Array.isArray(r.rumah)?r.rumah:[];
+      rumahList.forEach(entry=>{
+        if(!entry) return;
+        const label=String(entry);
+        const weight=(label==='1/2 Lain')?0.5:1;
+        const bucket=map.get(label)||{hari:0,upah:0};
+        bucket.hari+=weight;
+        bucket.upah+=rate*weight;
+        map.set(label,bucket);
+      });
+    });
+    const order=loadRumahOrder();
+    const keys=Array.from(map.keys()).sort((a,b)=>{
+      const ia=order.indexOf(a);
+      const ib=order.indexOf(b);
+      if(ia!==-1 && ib!==-1) return ia-ib;
+      if(ia!==-1) return -1;
+      if(ib!==-1) return 1;
+      return a.localeCompare(b,'id-ID');
+    });
+    return keys.map(name=>({name, ...map.get(name)}));
+  }
+
   function buildWhatsappMessage(){
     const ps=document.getElementById('periodStart');
     const pe=document.getElementById('periodEnd');
     const start=ps&&ps.value?ps.value:'';
     const end=pe&&pe.value?pe.value:'';
     const totals=computeTotals();
+    const rekap=computeRekapWhatsapp();
     const lines=['*Rekap Upah 7 Hari*'];
     if(start && end){
       lines.push(`Periode: ${start} s/d ${end}`);
@@ -2012,6 +2055,13 @@ document.addEventListener('DOMContentLoaded', () => {
     lines.push(`Uang beras: ${formatCurrency(totals.sumBeras)}`);
     lines.push(`Bonus: ${formatCurrency(totals.sumBonus)}`);
     lines.push(`Total dibayarkan: ${formatCurrency(totals.sumTotal)}`);
+    if(rekap.length){
+      lines.push('');
+      lines.push('*Ringkasan per Rumah*');
+      rekap.forEach(item=>{
+        lines.push(`- ${item.name}: ${formatHari(item.hari)} hari • ${formatCurrency(item.upah)}`);
+      });
+    }
     return lines.join('\n');
   }
 
