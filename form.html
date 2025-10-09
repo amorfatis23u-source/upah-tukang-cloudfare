@@ -1462,8 +1462,69 @@ const upahPokok = hari * rate;
     }
   }
 
+  function resolvePeriodMetadata(){
+    let start = '';
+    let end = '';
+
+    try{
+      if(typeof readPeriod === 'function'){
+        const direct = readPeriod();
+        if(direct && typeof direct === 'object'){
+          if(!start && direct.start) start = String(direct.start).trim();
+          if(!end && direct.end) end = String(direct.end).trim();
+        }
+      }
+    }catch(err){
+      console.warn('resolvePeriodMetadata via readPeriod gagal', err);
+    }
+
+    try{
+      if(!start){
+        const startEl = document.getElementById('periodStart');
+        if(startEl && startEl.value) start = String(startEl.value).trim();
+      }
+      if(!end){
+        const endEl = document.getElementById('periodEnd');
+        if(endEl && endEl.value) end = String(endEl.value).trim();
+      }
+    }catch(err){
+      console.warn('resolvePeriodMetadata via DOM gagal', err);
+    }
+
+    try{
+      if(!start){
+        const storedStart = window.localStorage.getItem('upah20_periodStart');
+        if(storedStart) start = String(storedStart).trim();
+      }
+      if(!end){
+        const storedEnd = window.localStorage.getItem('upah20_periodEnd');
+        if(storedEnd) end = String(storedEnd).trim();
+      }
+    }catch(err){
+      console.warn('resolvePeriodMetadata via localStorage gagal', err);
+    }
+
+    if(!start || !end){
+      try{
+        const historyRaw = window.localStorage.getItem('upah20_period_history_v2');
+        if(historyRaw){
+          const history = JSON.parse(historyRaw);
+          if(Array.isArray(history) && history.length){
+            const latest = history[history.length-1] || {};
+            if(!start && latest.periodeMulai) start = String(latest.periodeMulai).trim();
+            if(!end && latest.periodeSelesai) end = String(latest.periodeSelesai).trim();
+          }
+        }
+      }catch(err){
+        console.warn('resolvePeriodMetadata via history gagal', err);
+      }
+    }
+
+    return { start: start || '', end: end || '' };
+  }
+
   function buildCsvSnapshot(){
-    const period = (typeof readPeriod === 'function') ? readPeriod() : { start: '', end: '' };
+    const period = resolvePeriodMetadata();
     const headers = [
       'No','Nama','Kelas','Group','Rate',
       ...displayDayKeys, 'Hari','Upah Pokok','Uang Beras','Total','Keterangan'
@@ -2313,7 +2374,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setSaving(true);
     try {
       const { rows, classRates, rumah, allowance } = readWorkingState();
-      const period = readPeriod();
+      const period = resolvePeriodMetadata();
       const rumahLabel = deriveRumahLabel(rumah, rows);
       const allowanceThreshold = Number(allowance?.threshold ?? window.localStorage.getItem(STORAGE_KEYS.allowanceThreshold) ?? 0) || 0;
       const allowanceAmount = Number(allowance?.amount ?? window.localStorage.getItem(STORAGE_KEYS.allowanceAmount) ?? 0) || 0;
