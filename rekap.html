@@ -3,181 +3,466 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upah Tukang — Rekap Snapshot</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
-  <script type="module" src="/assets/js/config.js"></script>
-  <style>
-    :root {
-      color-scheme: light;
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #f1f5f9;
-      color: #0f172a;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: #fff;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
-      padding: 1.5rem 1rem;
-    }
-    main {
-      flex: 1;
-      padding: 2rem 1rem 3rem;
-    }
-    .shell {
-      max-width: 960px;
-      margin: 0 auto;
-    }
-    .card {
-      background: #fff;
-      border-radius: 1.25rem;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      padding: 2rem;
-      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1.5rem;
-      font-size: 0.92rem;
-    }
-    th, td {
-      padding: 0.75rem 0.6rem;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-      text-align: left;
-    }
-    th {
-      font-weight: 600;
-      color: #475569;
-    }
-    td code {
-      font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-      font-size: 0.85rem;
-    }
-    button {
-      font: inherit;
-      font-weight: 600;
-      border-radius: 999px;
-      padding: 0.4rem 0.9rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: #fff;
-      cursor: pointer;
-    }
-    button:hover {
-      border-color: #f97316;
-      color: #f97316;
-    }
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: center;
-    }
-    .toolbar input {
-      font: inherit;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      padding: 0.5rem 0.9rem;
-    }
-    .muted { color: #64748b; font-size: 0.85rem; }
-    nav a {
-      color: #0f172a;
-      text-decoration: none;
-      font-weight: 600;
-      margin-right: 0.75rem;
-      border-bottom: 2px solid transparent;
-      padding-bottom: 0.2rem;
-    }
-    nav a:hover { border-color: #f97316; color: #f97316; }
-  </style>
+  <title>Upah Tukang — Rekap</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/extra.css">
+  <script type="module">
+    import { api } from "./assets/js/config.js";
+    window.UpahAPI = window.UpahAPI || api();
+  </script>
 </head>
-<body>
-  <header>
-    <div class="shell">
-      <p style="margin:0;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.16em;color:#64748b;">Upah Tukang</p>
-      <h1 style="margin:0.4rem 0 0;font-size:1.6rem;">Rekap Snapshot</h1>
-      <nav style="margin-top:1rem;">
-        <a href="index.html">Dasbor</a>
-        <a href="form.html">Form</a>
-      </nav>
-    </div>
-  </header>
-  <main>
-    <div class="shell">
-      <div class="card">
-        <div class="toolbar">
-          <button id="btnReload">Muat Snapshot</button>
-          <label class="muted">Prefix: <input id="prefix" type="text" value="ut:snap:"></label>
-          <span id="status" class="muted"></span>
+<body class="bg-slate-50 text-slate-800">
+  <header class="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="rounded-xl border border-transparent px-3 py-2 text-sm text-slate-500 transition hover:border-slate-200 hover:text-slate-700">&larr; Beranda</a>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400">Upah Tukang</p>
+          <h1 class="text-lg font-semibold">Rekap Snapshot</h1>
         </div>
-        <table id="t">
-          <thead>
-            <tr>
-              <th>Key</th>
-              <th style="width:160px;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="2" class="muted">Belum ada data</td></tr>
-          </tbody>
-        </table>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        <button id="btnExportXLSX" data-testid="rekap-export-xlsx" class="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-600 hover:border-slate-300">Export XLSX</button>
+        <button id="btnExportCSV" data-testid="rekap-export-csv" class="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-600 hover:border-slate-300">Export CSV</button>
       </div>
     </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl space-y-8 px-4 py-6">
+    <section class="rounded-2xl bg-white p-6 shadow-sm">
+      <div class="grid gap-4 lg:grid-cols-4">
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Periode Mulai
+          <input id="filterStart" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Periode Selesai
+          <input id="filterEnd" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Rumah
+          <input id="filterRumah" type="text" placeholder="BlokA" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Pencarian Bebas
+          <input id="filterSearch" type="search" placeholder="kata kunci" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        </label>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <span id="totalInfo">Memuat...</span>
+        <span class="text-slate-300">•</span>
+        <button id="btnReset" class="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:border-slate-300">Reset Filter</button>
+      </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2">
+      <article class="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 class="text-base font-semibold text-slate-900">Total per Rumah</h2>
+        <p class="text-xs text-slate-500">Akumulasi total upah per rumah berdasarkan filter saat ini.</p>
+        <ul id="summaryRumah" class="mt-3 space-y-2 text-sm text-slate-700"></ul>
+      </article>
+      <article class="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 class="text-base font-semibold text-slate-900">Total per Hari</h2>
+        <p class="text-xs text-slate-500">Akumulasi total upah berdasarkan tanggal mulai (periode).</p>
+        <ul id="summaryHari" class="mt-3 space-y-2 text-sm text-slate-700"></ul>
+      </article>
+    </section>
+
+    <section class="rounded-2xl bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">Daftar Snapshot</h2>
+          <p class="text-xs text-slate-500">Klik tautan untuk membuka form sumber.</p>
+        </div>
+        <div class="text-xs text-slate-500" id="pageInfo">Halaman 1</div>
+      </div>
+      <div id="tableSkeleton" class="mt-4 space-y-2">
+        <div class="h-12 w-full skeleton"></div>
+        <div class="h-12 w-full skeleton"></div>
+        <div class="h-12 w-full skeleton"></div>
+      </div>
+      <div id="emptyState" class="mt-4 hidden rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">Tidak ada data sesuai filter.</div>
+      <div id="tableWrap" class="table-scroll hidden">
+        <table class="min-w-full text-sm">
+          <thead class="text-left text-slate-500">
+            <tr>
+              <th class="py-2 pr-4 font-medium">Periode</th>
+              <th class="py-2 pr-4 font-medium">Rumah</th>
+              <th class="py-2 pr-4 font-medium text-right">Total Upah</th>
+              <th class="py-2 pr-4 font-medium text-right">Total Hari</th>
+              <th class="py-2 pr-4 font-medium">Terakhir Disimpan</th>
+              <th class="py-2 pl-4 font-medium text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-100" data-testid="rekap-table-body"></tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div class="flex items-center gap-2">
+          <button id="btnPrev" class="rounded-xl border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40">Sebelumnya</button>
+          <button id="btnNext" class="rounded-xl border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40">Berikutnya</button>
+        </div>
+        <span id="cursorInfo" class="text-xs text-slate-400"></span>
+      </div>
+    </section>
   </main>
+
+  <footer class="border-t bg-white/80 py-4">
+    <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+      <span>&copy; <span id="year"></span> Upah Tukang</span>
+      <span>Gunakan tombol hapus dengan hati-hati</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js" integrity="sha384-QfX1QE4G6dxj7hjz9YZhhGZgxUwZjAyNWBo2fZK8Fn0vIUtS7gPAOfpRJ4VCJ06Y" crossorigin="anonymous"></script>
+  <script type="module" src="/assets/js/config.js"></script>
   <script type="module">
-    import { listSnapshots, getSnapshot, deleteSnapshot } from '/assets/js/config.js';
+    import { utils, showToast, formatError, ensureApiClient } from './assets/js/upah-core.js';
 
-    const table = document.getElementById('t').querySelector('tbody');
-    const status = document.getElementById('status');
-    const prefixInput = document.getElementById('prefix');
+    const api = ensureApiClient();
 
-    async function render() {
-      status.textContent = 'Memuat...';
-      table.innerHTML = '<tr><td colspan="2" class="muted">Memuat data...</td></tr>';
-      const prefix = prefixInput.value.trim() || 'ut:snap:';
-      const { ok, keys, error } = await listSnapshots(prefix);
-      if (!ok) {
-        table.innerHTML = `<tr><td colspan="2" class="muted">Gagal memuat: ${error || 'tidak diketahui'}</td></tr>`;
-        status.textContent = '';
-        return;
+    const AUTO_REFRESH_MS = 15000;
+
+    const YEAR = new Date().getFullYear();
+    document.getElementById('year').textContent = YEAR;
+
+    const state = {
+      all: [],
+      filtered: [],
+      page: 1,
+      perPage: 20,
+      loading: false,
+      rawKeys: [],
+      detailCache: new Map()
+    };
+
+    const tableBody = document.getElementById('tableBody');
+    const tableWrap = document.getElementById('tableWrap');
+    const tableSkeleton = document.getElementById('tableSkeleton');
+    const emptyState = document.getElementById('emptyState');
+    const totalInfo = document.getElementById('totalInfo');
+    const pageInfo = document.getElementById('pageInfo');
+    const cursorInfo = document.getElementById('cursorInfo');
+
+    const filterControls = {
+      start: document.getElementById('filterStart'),
+      end: document.getElementById('filterEnd'),
+      rumah: document.getElementById('filterRumah'),
+      search: document.getElementById('filterSearch')
+    };
+
+    async function fetchAll({ silent = false } = {}) {
+      if (state.loading) return;
+      state.loading = true;
+      state.rawKeys = [];
+      tableSkeleton.classList.remove('hidden');
+      tableWrap.classList.add('hidden');
+      emptyState.classList.add('hidden');
+      totalInfo.textContent = 'Memuat data...';
+      let cursor = '';
+      let safety = 0;
+      try {
+        do {
+          const res = await api.listSnapshots('ut:snap:', cursor, 100);
+          state.rawKeys.push(...(res.keys || []));
+          cursor = res.cursor || '';
+          safety += 1;
+          if (res.list_complete || !cursor || safety > 20) break;
+        } while (true);
+
+        const keep = new Set(state.rawKeys.map((entry) => entry.name));
+        Array.from(state.detailCache.keys()).forEach((key) => {
+          if (!keep.has(key)) state.detailCache.delete(key);
+        });
+
+        await enrichRecords();
+        applyFilter();
+        if (!silent) {
+          showToast('Data rekap diperbarui', 'success');
+        }
+      } catch (err) {
+        showToast(formatError(err), 'error');
+        tableSkeleton.classList.add('hidden');
+      } finally {
+        state.loading = false;
       }
-      if (!keys.length) {
-        table.innerHTML = '<tr><td colspan="2" class="muted">Tidak ada snapshot</td></tr>';
-      } else {
-        table.innerHTML = keys.map((k) => `
-          <tr>
-            <td><code>${k.name}</code></td>
-            <td>
-              <button class="open" data-k="${k.name}">Buka</button>
-              <button class="del" data-k="${k.name}">Hapus</button>
-            </td>
-          </tr>
-        `).join('');
-      }
-      status.textContent = `Total: ${keys.length}`;
     }
 
-    table.addEventListener('click', async (event) => {
-      const btn = event.target.closest('button');
-      if (!btn) return;
-      const key = btn.dataset.k;
-      if (btn.classList.contains('open')) {
-        const snap = await getSnapshot(key);
-        const payload = snap?.data ?? snap;
-        alert(JSON.stringify(payload, null, 2));
-      } else if (btn.classList.contains('del')) {
-        if (!confirm('Hapus snapshot ini?')) return;
-        await deleteSnapshot(key);
-        render();
+    async function enrichRecords() {
+      const records = [];
+      const needFetch = [];
+
+      state.rawKeys.forEach((entry) => {
+        const { name, metadata = {} } = entry;
+        const parsed = utils.parseSnapshotKey(name);
+        const cached = state.detailCache.get(name);
+        const record = {
+          key: name,
+          start: metadata.start || parsed.start || '',
+          end: metadata.end || parsed.end || '',
+          rumah: metadata.rumah || parsed.rumah || '',
+          updatedAt: metadata.updatedAt || '',
+          total: metadata.total ?? metadata.totalUpah ?? null,
+          totalDays: metadata.totalDays ?? null,
+          meta: metadata
+        };
+
+        if (cached) {
+          Object.assign(record, cached);
+        } else if (record.total == null || record.totalDays == null) {
+          needFetch.push(record);
+        }
+
+        records.push(record);
+      });
+
+      if (needFetch.length) {
+        const concurrency = Math.min(4, needFetch.length);
+        let index = 0;
+        const workers = Array.from({ length: concurrency }, () => (async () => {
+          while (index < needFetch.length) {
+            const currentIndex = index++;
+            const item = needFetch[currentIndex];
+            if (!item) break;
+            try {
+              const res = await api.loadData(item.key);
+              const rows = res?.value?.rows || [];
+              const detail = {
+                total: utils.sumRows(rows),
+                totalDays: utils.sumDays(rows),
+                start: res?.value?.start || item.start,
+                end: res?.value?.end || item.end,
+                rumah: res?.value?.rumah || item.rumah,
+                updatedAt: res?.meta?.updatedAt || item.updatedAt
+              };
+              Object.assign(item, detail);
+              state.detailCache.set(item.key, {
+                total: detail.total,
+                totalDays: detail.totalDays,
+                start: detail.start,
+                end: detail.end,
+                rumah: detail.rumah,
+                updatedAt: detail.updatedAt
+              });
+            } catch (err) {
+              console.error('gagal load detail', item.key, err);
+              item.total = item.total ?? 0;
+              item.totalDays = item.totalDays ?? 0;
+            }
+          }
+        })());
+        await Promise.all(workers);
+      }
+
+      state.all = records.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || 0).getTime();
+        return dateB - dateA;
+      });
+    }
+
+    function applyFilter() {
+      const startVal = filterControls.start.value;
+      const endVal = filterControls.end.value;
+      const rumahVal = filterControls.rumah.value.trim().toLowerCase();
+      const searchVal = filterControls.search.value.trim().toLowerCase();
+
+      state.filtered = state.all.filter((item) => {
+        if (startVal && (!item.start || item.start < startVal)) return false;
+        if (endVal && (!item.end || item.end > endVal)) return false;
+        if (rumahVal && !String(item.rumah || '').toLowerCase().includes(rumahVal)) return false;
+        if (searchVal) {
+          const haystack = [item.key, item.rumah, item.start, item.end].join(' ').toLowerCase();
+          if (!haystack.includes(searchVal)) return false;
+        }
+        return true;
+      });
+      state.page = 1;
+      render();
+    }
+
+    function paginate() {
+      const startIndex = (state.page - 1) * state.perPage;
+      return state.filtered.slice(startIndex, startIndex + state.perPage);
+    }
+
+    function render() {
+      const rows = paginate();
+      tableBody.innerHTML = '';
+      if (!state.filtered.length) {
+        tableSkeleton.classList.add('hidden');
+        tableWrap.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        totalInfo.textContent = '0 snapshot';
+        pageInfo.textContent = 'Halaman 0';
+        cursorInfo.textContent = '';
+        renderSummaries([]);
+        return;
+      }
+      tableSkeleton.classList.add('hidden');
+      tableWrap.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+
+      rows.forEach((item) => {
+        const periode = item.start && item.end ? `${item.start} – ${item.end}` : '—';
+        const updated = item.updatedAt ? new Date(item.updatedAt).toLocaleString('id-ID') : '—';
+        const tr = document.createElement('tr');
+        tr.className = 'transition hover:bg-slate-50';
+        tr.dataset.testid = 'rekap-row';
+        tr.innerHTML = `
+          <td class="py-3 pr-4 align-top">
+            <div class="font-medium text-slate-800">${periode}</div>
+            <div class="text-xs text-slate-400">${item.key}</div>
+          </td>
+          <td class="py-3 pr-4 align-top text-slate-700">${item.rumah || '—'}</td>
+          <td class="py-3 pr-4 align-top text-right font-medium text-slate-800">${utils.formatRupiah(item.total || 0)}</td>
+          <td class="py-3 pr-4 align-top text-right text-slate-600">${utils.formatNumber(item.totalDays || 0)}</td>
+          <td class="py-3 pr-4 align-top text-slate-600">${updated}</td>
+          <td class="py-3 pl-4 text-right">
+            <div class="flex justify-end gap-2">
+              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="form.html?key=${encodeURIComponent(item.key)}">Buka</a>
+              <button class="btnDelete rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-testid="rekap-delete" data-key="${item.key}">Hapus</button>
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
+      pageInfo.textContent = `Halaman ${state.page} dari ${totalPages}`;
+      totalInfo.textContent = `${state.filtered.length} snapshot`;
+      document.getElementById('btnPrev').disabled = state.page <= 1;
+      document.getElementById('btnNext').disabled = state.page >= totalPages;
+      cursorInfo.textContent = `${rows.length} baris ditampilkan`;
+      renderSummaries(state.filtered);
+    }
+
+    function renderSummaries(records) {
+      const byRumah = new Map();
+      const byHari = new Map();
+      records.forEach((item) => {
+        const rumahKey = item.rumah || 'Tanpa label';
+        byRumah.set(rumahKey, (byRumah.get(rumahKey) || 0) + (item.total || 0));
+        const hariKey = item.start || 'Tanpa tanggal';
+        byHari.set(hariKey, (byHari.get(hariKey) || 0) + (item.total || 0));
+      });
+
+      const rumahList = Array.from(byRumah.entries()).sort((a, b) => b[1] - a[1]).map(([rumah, total]) => `<li class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2"><span>${rumah}</span><span class="font-semibold">${utils.formatRupiah(total)}</span></li>`);
+      const hariList = Array.from(byHari.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([hari, total]) => `<li class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2"><span>${hari}</span><span class="font-semibold">${utils.formatRupiah(total)}</span></li>`);
+
+      document.getElementById('summaryRumah').innerHTML = rumahList.length ? rumahList.join('') : '<li class="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">Tidak ada data</li>';
+      document.getElementById('summaryHari').innerHTML = hariList.length ? hariList.join('') : '<li class="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">Tidak ada data</li>';
+    }
+
+    document.getElementById('btnPrev').addEventListener('click', () => {
+      if (state.page <= 1) return;
+      state.page -= 1;
+      render();
+    });
+
+    document.getElementById('btnNext').addEventListener('click', () => {
+      const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
+      if (state.page >= totalPages) return;
+      state.page += 1;
+      render();
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      filterControls.start.value = '';
+      filterControls.end.value = '';
+      filterControls.rumah.value = '';
+      filterControls.search.value = '';
+      applyFilter();
+    });
+
+    Object.values(filterControls).forEach((input) => {
+      input.addEventListener('input', utils.debounce(applyFilter, 200));
+    });
+
+    document.addEventListener('click', async (event) => {
+      if (event.target.matches('.btnDelete')) {
+        const key = event.target.getAttribute('data-key');
+        if (!window.confirm('Hapus snapshot ini?')) return;
+        try {
+          await api.deleteKey(key);
+          showToast('Snapshot dihapus', 'success');
+          state.rawKeys = state.rawKeys.filter((entry) => entry.name !== key);
+          state.all = state.all.filter((entry) => entry.key !== key);
+          applyFilter();
+        } catch (err) {
+          showToast(formatError(err), 'error');
+        }
       }
     });
 
-    document.getElementById('btnReload').addEventListener('click', render);
-    render();
+    document.getElementById('btnExportXLSX').addEventListener('click', () => {
+      if (!state.filtered.length) {
+        showToast('Tidak ada data untuk diekspor', 'warning');
+        return;
+      }
+      const rows = state.filtered.map((item, idx) => ({
+        No: idx + 1,
+        Key: item.key,
+        Periode: `${item.start} s/d ${item.end}`,
+        Rumah: item.rumah,
+        TotalUpah: item.total,
+        TotalHari: item.totalDays,
+        UpdatedAt: item.updatedAt
+      }));
+      const rumahSheet = [];
+      const rumahAcc = new Map();
+      state.filtered.forEach((item) => {
+        const key = item.rumah || 'Tanpa label';
+        rumahAcc.set(key, (rumahAcc.get(key) || 0) + (item.total || 0));
+      });
+      rumahAcc.forEach((total, rumah) => {
+        rumahSheet.push({ Rumah: rumah, TotalUpah: total });
+      });
+      const hariAcc = new Map();
+      state.filtered.forEach((item) => {
+        const key = item.start || 'Tanpa tanggal';
+        hariAcc.set(key, (hariAcc.get(key) || 0) + (item.total || 0));
+      });
+      const hariSheet = [];
+      hariAcc.forEach((total, hari) => {
+        hariSheet.push({ PeriodeMulai: hari, TotalUpah: total });
+      });
+      utils.toXLSX('rekap_upah.xlsx', {
+        Snapshot: rows,
+        'Total per Rumah': rumahSheet,
+        'Total per Hari': hariSheet
+      });
+      showToast('File XLSX dibuat', 'success');
+    });
+
+    document.getElementById('btnExportCSV').addEventListener('click', () => {
+      if (!state.filtered.length) {
+        showToast('Tidak ada data untuk diekspor', 'warning');
+        return;
+      }
+      const rows = state.filtered.map((item, idx) => ({
+        No: idx + 1,
+        Key: item.key,
+        Periode: `${item.start} s/d ${item.end}`,
+        Rumah: item.rumah,
+        TotalUpah: item.total,
+        TotalHari: item.totalDays,
+        UpdatedAt: item.updatedAt
+      }));
+      utils.toCSV('rekap_upah.csv', rows);
+      showToast('File CSV dibuat', 'success');
+    });
+
+    fetchAll({ silent: true });
+
+    setInterval(() => {
+      if (document.hidden) return;
+      if (state.loading) return;
+      fetchAll({ silent: true });
+    }, AUTO_REFRESH_MS);
   </script>
 </body>
 </html>

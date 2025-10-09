@@ -1,23 +1,56 @@
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
+
+function kvMissingResponse() {
+  return new Response(JSON.stringify({ ok: false, error: 'KV binding UPAH_KV not found' }), {
+    status: 500,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders }
+  });
+}
+
+export function onRequestOptions() {
+  return new Response(null, { headers: corsHeaders });
+}
+
 export async function onRequestGet({ request, env }) {
+  const kv = env?.UPAH_KV;
+  if (!kv) {
+    return kvMissingResponse();
+  }
+
   const url = new URL(request.url);
   const prefix = url.searchParams.get('prefix') || 'ut:snap:';
-  const list = [];
-  let cursor;
-  do {
-    const { keys, list_complete, cursor: next } = await env.UPAH_KV.list({ prefix, cursor });
-    for (const k of keys) {
-      list.push({ name: k.name });
-    }
-    cursor = list_complete ? undefined : next;
-  } while (cursor);
+  const cursor = url.searchParams.get('cursor') || undefined;
+  const limitParam = url.searchParams.get('limit');
 
-  return new Response(
-    JSON.stringify({ ok: true, count: list.length, keys: list }),
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    }
-  );
+  let limit = Number.parseInt(limitParam || '100', 10);
+  if (!Number.isFinite(limit) || limit <= 0) {
+    limit = 100;
+  }
+  limit = Math.min(Math.max(limit, 1), 500);
+
+  try {
+    const { keys: batch = [], list_complete: complete, cursor: nextCursor = '' } = await kv.list({ prefix, cursor, limit });
+    const keys = batch.map((entry) => ({ name: entry.name }));
+
+    return new Response(JSON.stringify({
+      ok: true,
+      prefix,
+      count: keys.length,
+      cursor: nextCursor || '',
+      list_complete: Boolean(complete),
+      keys
+    }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
+    });
+  } catch (err) {
+    console.error('api/list error', err);
+    return new Response(JSON.stringify({ ok: false, error: String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
+    });
+  }
 }
