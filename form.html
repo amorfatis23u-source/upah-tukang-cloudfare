@@ -1998,14 +1998,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   }
 
-  function openWhatsappWithText(){
-    let prepWindow = null;
-    try{
-      prepWindow = window.open('about:blank', '_blank', 'noopener');
-      if(prepWindow){ prepWindow.opener = null; }
-    }catch(err){
-      console.warn('Gagal menyiapkan jendela WhatsApp', err);
-    }
+  function buildWhatsappUrl(){
     try{
       const waUrl = new URL(WHATSAPP_BASE);
       waUrl.searchParams.set('phone', WHATSAPP_PHONE);
@@ -2013,24 +2006,37 @@ document.addEventListener('DOMContentLoaded', () => {
       if(message){
         waUrl.searchParams.set('text', message);
       }
-      if(prepWindow && !prepWindow.closed){
-        prepWindow.location.href = waUrl.toString();
-      }else{
-        window.open(waUrl.toString(), '_blank', 'noopener');
-      }
+      return waUrl.toString();
     }catch(err){
-      console.warn('Gagal memproses WhatsApp text', err);
+      console.warn('Gagal menyusun URL WhatsApp', err);
       try{
         const fallback = new URL(WHATSAPP_BASE);
         fallback.searchParams.set('phone', WHATSAPP_PHONE);
-        const target = fallback.toString();
-        if(prepWindow && !prepWindow.closed){
-          prepWindow.location.href = target;
-        }else{
-          window.open(target, '_blank', 'noopener');
-        }
+        return fallback.toString();
+      }catch(fallbackErr){
+        console.warn('Fallback URL WhatsApp gagal', fallbackErr);
+      }
+    }
+    return WHATSAPP_BASE;
+  }
+
+  function openWhatsappWithText(){
+    const target = buildWhatsappUrl();
+    let opened = false;
+    try{
+      const newWindow = window.open(target, '_blank', 'noopener');
+      if(newWindow){
+        newWindow.opener = null;
+        opened = true;
+      }
+    }catch(err){
+      console.warn('Gagal membuka tab WhatsApp baru', err);
+    }
+    if(!opened){
+      try{
+        window.open(target, '_self');
       }catch(openErr){
-        console.warn('Gagal membuka WhatsApp Web', openErr);
+        console.warn('Gagal menggunakan fallback WhatsApp', openErr);
       }
     }
   }
