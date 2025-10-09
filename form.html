@@ -1929,7 +1929,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 })();
 </script>
-<!-- Injected: Weekly summary save + auto-close & redirect on Save -->
+<!-- Injected: Weekly summary save + redirect to index & WhatsApp on Save -->
 <script>
 (function(){
   const KEY_ROWS='upah20_rows', KEY_RATES='upah20_classRates', KEY_THRESH='upah20_beras_threshold', KEY_AMT='upah20_beras_amount', KEY_HISTORY='upah20_period_history_v2';
@@ -1970,42 +1970,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return result;
   };
 
-  function safeOpen(url){
-    try{ return window.open(url, '_blank', 'noopener'); }
-    catch(err){ console.warn('Failed to open window for', url, err); return null; }
-  }
-
-  function scheduleClose(){
-    setTimeout(function(){
-      try{ window.close(); }catch(_){ }
-      setTimeout(function(){ try{ window.location.replace('about:blank'); }catch(_){ } },300);
-    },120);
-  }
-
   const INDEX_URL=new URL('./index.html', window.location.href).href;
-  const WHATSAPP_URL='https://wa.me/6281210400168';
+  const WHATSAPP_URL='https://web.whatsapp.com/send?phone=6281210400168';
+
+  function goToIndexAndWhatsapp(){
+    try{
+      window.open(WHATSAPP_URL, '_blank', 'noopener');
+    }catch(err){
+      console.warn('Gagal membuka WhatsApp Web', err);
+    }
+    try{
+      window.location.href = INDEX_URL;
+    }catch(err){
+      try{ window.location.assign(INDEX_URL); }
+      catch(assignErr){ console.warn('Gagal menuju index.html', assignErr); }
+    }
+  }
 
   window.handleSaveAndRedirect=function(event){
     if(event && typeof event.preventDefault==='function') event.preventDefault();
-
-    const indexPlaceholder=safeOpen('about:blank');
-    const waPlaceholder=safeOpen('about:blank');
-
-    const finalize=()=>{
-      try{
-        if(indexPlaceholder && !indexPlaceholder.closed){ indexPlaceholder.location.replace(INDEX_URL); }
-        else{ safeOpen(INDEX_URL); }
-      }catch(err){ console.warn('Failed to redirect index window', err); }
-      try{
-        if(waPlaceholder && !waPlaceholder.closed){ waPlaceholder.location.replace(WHATSAPP_URL); }
-        else{ safeOpen(WHATSAPP_URL); }
-      }catch(err){ console.warn('Failed to redirect WhatsApp window', err); }
-      scheduleClose();
-    };
-
-    const cleanupOnFailure=()=>{
-      try{ if(indexPlaceholder && !indexPlaceholder.closed) indexPlaceholder.close(); }catch(_){ }
-      try{ if(waPlaceholder && !waPlaceholder.closed) waPlaceholder.close(); }catch(_){ }
+    const finalize = ()=>{ goToIndexAndWhatsapp(); };
+    const handleFailure = (err)=>{
+      console.error('Simpan gagal', err);
+      alert('Fungsi simpan tidak tersedia');
     };
 
     try{
@@ -2023,12 +2010,9 @@ document.addEventListener('DOMContentLoaded', () => {
         finalize();
         return;
       }
-      alert('Fungsi simpan tidak tersedia');
-      cleanupOnFailure();
+      handleFailure(new Error('saveAll tidak tersedia'));
     }catch(err){
-      console.error('Simpan gagal', err);
-      alert('Fungsi simpan tidak tersedia');
-      cleanupOnFailure();
+      handleFailure(err);
     }
   };
   // Auto "Kosongkan" when ?new=N
