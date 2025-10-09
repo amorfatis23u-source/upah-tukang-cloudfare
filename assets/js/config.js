@@ -1,5 +1,4 @@
 const RETRY_DELAYS = [0, 600, 1400];
-const DEFAULT_API_BASE = '/api';
 
 async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DELAYS } = {}) {
   let lastErr = null;
@@ -32,102 +31,46 @@ async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DEL
   throw lastErr || new Error('Gagal memuat');
 }
 
-function normaliseBase(base = DEFAULT_API_BASE) {
+function normaliseBase(base = '/api') {
   if (!base) return '';
   if (/^https?:/i.test(base)) return base.replace(/\/$/, '');
   return base.endsWith('/') ? base.slice(0, -1) : base;
 }
 
-function resolveBase(base) {
-  if (base === undefined) {
-    return normaliseBase(DEFAULT_API_BASE);
-  }
-  return normaliseBase(base);
-}
-
-function buildUrl(base, path = '') {
-  if (/^https?:/i.test(path)) return path;
+export function api(base = '/api') {
   const normalised = normaliseBase(base);
-  if (!normalised) {
-    if (!path) return '';
-    return path.startsWith('/') ? path : `/${path}`;
-  }
-  if (!path) return normalised;
-  return `${normalised}${path.startsWith('/') ? '' : '/'}${path}`;
-}
-
-export function apiBase() {
-  return DEFAULT_API_BASE;
-}
-
-export async function saveSnapshot(data, { base } = {}) {
-  const target = buildUrl(resolveBase(base), '/state');
-  return jsonRequest(target, { method: 'POST', body: data });
-}
-
-export async function getSnapshot(key, { base } = {}) {
-  if (!key) throw new Error('key wajib');
-  const target = buildUrl(resolveBase(base), `/state?key=${encodeURIComponent(key)}`);
-  return jsonRequest(target);
-}
-
-export async function deleteSnapshot(key, { base } = {}) {
-  if (!key) throw new Error('key wajib');
-  const target = buildUrl(resolveBase(base), `/state?key=${encodeURIComponent(key)}`);
-  return jsonRequest(target, { method: 'DELETE' });
-}
-
-export async function listSnapshots(prefix = 'ut:snap:', options = {}) {
-  const { base, cursor, limit, values } = options || {};
-  const search = new URLSearchParams();
-  if (prefix) search.set('prefix', prefix);
-  if (cursor) search.set('cursor', cursor);
-  if (limit) search.set('limit', String(limit));
-  if (values) search.set('values', '1');
-  const query = search.toString();
-  const target = buildUrl(resolveBase(base), `/list${query ? `?${query}` : ''}`);
-  return jsonRequest(target);
-}
-
-export function api(base = DEFAULT_API_BASE) {
-  const normalised = resolveBase(base);
-  const toUrl = (path = '') => buildUrl(normalised, path);
+  const toUrl = (path = '') => {
+    if (/^https?:/i.test(path)) return path;
+    if (!normalised) return path || '';
+    if (!path) return normalised;
+    return `${normalised}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
 
   const client = {};
 
   client.getRaw = async function getRaw(key) {
     if (!key) throw new Error('key wajib');
-    const res = await getSnapshot(key, { base: normalised });
-    if (res && typeof res === 'object') {
-      if (res.data !== undefined) return res.data;
-      if (res.value !== undefined) return res.value;
-    }
-    return res ?? null;
+    const res = await jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`));
+    return res?.value ?? null;
   };
 
   client.setRaw = async function setRaw(key, value) {
     if (!key) throw new Error('key wajib');
-    return saveSnapshot({ key, data: value, value }, { base: normalised });
+    return jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value } });
   };
 
   client.del = async function del(key) {
     if (!key) throw new Error('key wajib');
-    return deleteSnapshot(key, { base: normalised });
+    return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`), { method: 'DELETE' });
   };
 
-  client.listSnapshots = async function listSnapshotsClient(prefix = 'ut:snap:', cursorOrOptions, maybeLimit) {
-    let opts = {};
-    if (cursorOrOptions && typeof cursorOrOptions === 'object' && !Array.isArray(cursorOrOptions)) {
-      opts = { ...cursorOrOptions };
-    } else {
-      if (cursorOrOptions !== undefined && cursorOrOptions !== null && cursorOrOptions !== '') {
-        opts.cursor = cursorOrOptions;
-      }
-      if (maybeLimit !== undefined) {
-        opts.limit = maybeLimit;
-      }
-    }
-    return listSnapshots(prefix, { base: normalised, ...opts });
+  client.listSnapshots = async function listSnapshots(prefix = 'ut:snap:', { limit = 100, values = false } = {}) {
+    const search = new URLSearchParams();
+    if (prefix) search.set('prefix', prefix);
+    if (limit) search.set('limit', String(limit));
+    if (values) search.set('values', '1');
+    const res = await jsonRequest(toUrl(`/list?${search.toString()}`));
+    return res?.items ?? [];
   };
 
   client.makeSnapKey = function makeSnapKey({ periodeStart, periodeEnd, rumah, uuid }) {
@@ -144,12 +87,12 @@ export function api(base = DEFAULT_API_BASE) {
 
   client.get = async function get(key) {
     if (!key) throw new Error('key wajib');
-    return getSnapshot(key, { base: normalised });
+    return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`));
   };
 
   client.set = async function set(key, value, meta = {}) {
     if (!key) throw new Error('key wajib');
-    return saveSnapshot({ key, data: value, value, meta }, { base: normalised });
+    return jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value, meta } });
   };
 
   client.deleteKey = async function deleteKey(key) {
@@ -157,7 +100,13 @@ export function api(base = DEFAULT_API_BASE) {
   };
 
   client.list = async function list(prefix = '', cursor = '', limit = 50, options = {}) {
-    return listSnapshots(prefix, { base: normalised, cursor, limit, values: options?.values });
+    const search = new URLSearchParams();
+    if (prefix) search.set('prefix', prefix);
+    if (cursor) search.set('cursor', cursor);
+    if (limit) search.set('limit', String(limit));
+    if (options?.values) search.set('values', '1');
+    const query = search.toString();
+    return jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
   };
 
   return client;
