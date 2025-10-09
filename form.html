@@ -1980,8 +1980,45 @@ document.addEventListener('DOMContentLoaded', () => {
   const WHATSAPP_BASE='https://web.whatsapp.com/send';
   const WHATSAPP_PHONE='6281210400168';
 
-  function openWhatsappWithCsv(){
-    let targetUrl=null;
+  async function shareCsvFile(csv, filename){
+    if(!csv) return false;
+    if(typeof navigator==='undefined' || typeof navigator.share!=='function') return false;
+    if(typeof File!=='function') return false;
+    let file;
+    try{
+      file = new File([csv], filename, { type: 'text/csv;charset=utf-8' });
+    }catch(err){
+      console.warn('Gagal membuat File CSV', err);
+      return false;
+    }
+    if(typeof navigator.canShare==='function' && !navigator.canShare({ files:[file] })){
+      return false;
+    }
+    try{
+      await navigator.share({
+        files:[file],
+        title:'Rekap Upah 7 Hari',
+        text:`Rekap terbaru (${filename}) terlampir sebagai file CSV.`
+      });
+      return true;
+    }catch(err){
+      if(err && err.name==='AbortError'){
+        console.warn('Berbagi CSV dibatalkan pengguna');
+      }else{
+        console.warn('navigator.share gagal', err);
+      }
+      return false;
+    }
+  }
+
+  async function openWhatsappWithCsv(){
+    let prepWindow = null;
+    try{
+      prepWindow = window.open('about:blank', '_blank', 'noopener');
+      if(prepWindow){ prepWindow.opener = null; }
+    }catch(err){
+      console.warn('Gagal menyiapkan jendela WhatsApp', err);
+    }
     try{
       if(typeof window.buildCsvSnapshot!=='function'){
         throw new Error('buildCsvSnapshot tidak tersedia');
@@ -1991,57 +2028,47 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error('CSV kosong');
       }
       const {csv, filename} = snapshot;
-      let dataUrl='';
+      const shared = await shareCsvFile(csv, filename);
+      if(shared){
+        if(prepWindow && !prepWindow.closed){ prepWindow.close(); }
+        return;
+      }
       try{
-        if(typeof btoa==='function'){
-          if(typeof TextEncoder!=='undefined'){
-            const encoder = new TextEncoder();
-            const bytes = encoder.encode(csv);
-            const chunkSize = 0x8000;
-            let binary = '';
-            for(let i=0;i<bytes.length;i+=chunkSize){
-              const sub = bytes.subarray(i, i+chunkSize);
-              let chunkStr='';
-              for(let j=0;j<sub.length;j++){
-                chunkStr += String.fromCharCode(sub[j]);
-              }
-              binary += chunkStr;
-            }
-            dataUrl = 'data:text/csv;base64,' + btoa(binary);
-          }else{
-            dataUrl = 'data:text/csv;base64,' + btoa(unescape(encodeURIComponent(csv)));
-          }
+        if(typeof _downloadBlob==='function'){
+          _downloadBlob(csv, 'text/csv;charset=utf-8', filename);
         }
-      }catch(baseErr){
-        console.warn('Gagal encode CSV ke base64', baseErr);
-        dataUrl='';
+      }catch(downloadErr){
+        console.warn('Gagal mengunduh CSV cadangan', downloadErr);
       }
-      if(!dataUrl){
-        dataUrl = 'data:text/csv,' + encodeURIComponent(csv);
-      }
-      const message = `Berikut CSV tersimpan (${filename}):\n${dataUrl}`;
+      const message = `Rekap ${filename} siap dibagikan. File CSV telah diunduh otomatis, silakan lampirkan pada percakapan ini.`;
       const waUrl = new URL(WHATSAPP_BASE);
       waUrl.searchParams.set('phone', WHATSAPP_PHONE);
       waUrl.searchParams.set('text', message);
-      targetUrl = waUrl.toString();
-    }catch(err){
-      console.warn('Gagal menyiapkan tautan CSV WhatsApp', err);
-      const fallback = new URL(WHATSAPP_BASE);
-      fallback.searchParams.set('phone', WHATSAPP_PHONE);
-      targetUrl = fallback.toString();
-    }
-    try{
-      if(targetUrl){
-        window.open(targetUrl, '_blank', 'noopener');
+      if(prepWindow && !prepWindow.closed){
+        prepWindow.location.href = waUrl.toString();
+      }else{
+        window.open(waUrl.toString(), '_blank', 'noopener');
       }
-    }catch(openErr){
-      console.warn('Gagal membuka WhatsApp Web', openErr);
+    }catch(err){
+      console.warn('Gagal memproses WhatsApp CSV', err);
+      try{
+        const fallback = new URL(WHATSAPP_BASE);
+        fallback.searchParams.set('phone', WHATSAPP_PHONE);
+        const target = fallback.toString();
+        if(prepWindow && !prepWindow.closed){
+          prepWindow.location.href = target;
+        }else{
+          window.open(target, '_blank', 'noopener');
+        }
+      }catch(openErr){
+        console.warn('Gagal membuka WhatsApp Web', openErr);
+      }
     }
   }
 
-  function goToIndexAndWhatsapp(){
+  async function goToIndexAndWhatsapp(){
     try{
-      openWhatsappWithCsv();
+      await openWhatsappWithCsv();
     }catch(err){
       console.warn('openWhatsappWithCsv error', err);
     }
@@ -2055,7 +2082,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.handleSaveAndRedirect=function(event){
     if(event && typeof event.preventDefault==='function') event.preventDefault();
-    const finalize = ()=>{ goToIndexAndWhatsapp(); };
+    const finalize = ()=> goToIndexAndWhatsapp();
     const handleFailure = (err)=>{
       console.error('Simpan gagal', err);
       alert('Fungsi simpan tidak tersedia');
@@ -2065,7 +2092,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(typeof window.saveAll==='function'){
         const result=window.saveAll();
         if(result && typeof result.then==='function'){
-          result.then(finalize).catch(err=>{ console.warn('saveAll promise rejected', err); finalize(); });
+          result.then(()=>finalize()).catch(err=>{ console.warn('saveAll promise rejected', err); return finalize(); });
         } else {
           finalize();
         }
