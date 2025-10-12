@@ -2044,7 +2044,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const INDEX_URL=new URL('./index.html', window.location.href).href;
-  const WHATSAPP_WEB_BASE='https://web.whatsapp.com/send';
   const WHATSAPP_API_BASE='https://api.whatsapp.com/send';
   const WHATSAPP_APP_BASE='whatsapp://send';
   const WHATSAPP_PHONE='6281210400168';
@@ -2055,11 +2054,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const targets=[];
     if(isMobile){
       targets.push(WHATSAPP_APP_BASE);
-      targets.push(WHATSAPP_API_BASE);
-    } else {
-      targets.push(WHATSAPP_WEB_BASE);
-      targets.push(WHATSAPP_API_BASE);
     }
+    targets.push(WHATSAPP_API_BASE);
     // Pastikan urutan unik & terfilter dari nilai kosong
     return targets.filter(Boolean).filter((value, index, self)=>self.indexOf(value)===index);
   }
