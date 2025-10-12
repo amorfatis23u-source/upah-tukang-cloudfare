@@ -2044,8 +2044,25 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const INDEX_URL=new URL('./index.html', window.location.href).href;
-  const WHATSAPP_BASE='https://web.whatsapp.com/send';
+  const WHATSAPP_WEB_BASE='https://web.whatsapp.com/send';
+  const WHATSAPP_API_BASE='https://api.whatsapp.com/send';
+  const WHATSAPP_APP_BASE='whatsapp://send';
   const WHATSAPP_PHONE='6281210400168';
+
+  function detectWhatsappTargets(){
+    const ua=(typeof navigator!=='undefined' && navigator.userAgent)||'';
+    const isMobile=/Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(ua);
+    const targets=[];
+    if(isMobile){
+      targets.push(WHATSAPP_APP_BASE);
+      targets.push(WHATSAPP_API_BASE);
+    } else {
+      targets.push(WHATSAPP_WEB_BASE);
+      targets.push(WHATSAPP_API_BASE);
+    }
+    // Pastikan urutan unik & terfilter dari nilai kosong
+    return targets.filter(Boolean).filter((value, index, self)=>self.indexOf(value)===index);
+  }
 
   function buildWhatsappCsvText(){
     try{
@@ -2065,45 +2082,79 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   }
 
-  function buildWhatsappUrl(){
+  function buildWhatsappUrl(base, message){
+    const phone=WHATSAPP_PHONE||'';
+    const text=message||'';
+    if(!base){
+      return '';
+    }
+    if(/^whatsapp:\/\//i.test(base)){
+      const params=new URLSearchParams();
+      if(phone) params.set('phone', phone);
+      if(text) params.set('text', text);
+      const query=params.toString();
+      return query ? `${base}?${query}` : base;
+    }
     try{
-      const waUrl = new URL(WHATSAPP_BASE);
-      waUrl.searchParams.set('phone', WHATSAPP_PHONE);
-      const message = buildWhatsappCsvText();
-      if(message){
-        waUrl.searchParams.set('text', message);
-      }
+      const waUrl=new URL(base);
+      if(phone) waUrl.searchParams.set('phone', phone);
+      if(text) waUrl.searchParams.set('text', text);
       return waUrl.toString();
     }catch(err){
       console.warn('Gagal menyusun URL WhatsApp', err);
-      try{
-        const fallback = new URL(WHATSAPP_BASE);
-        fallback.searchParams.set('phone', WHATSAPP_PHONE);
-        return fallback.toString();
-      }catch(fallbackErr){
-        console.warn('Fallback URL WhatsApp gagal', fallbackErr);
-      }
     }
-    return WHATSAPP_BASE;
+    return '';
   }
 
   function openWhatsappWithText(){
-    const target = buildWhatsappUrl();
-    let opened = false;
-    try{
-      const newWindow = window.open(target, '_blank', 'noopener');
-      if(newWindow){
-        newWindow.opener = null;
-        opened = true;
+    const message=buildWhatsappCsvText();
+    const bases=detectWhatsappTargets();
+    let opened=false;
+    let lastResort='';
+    for(let i=0;i<bases.length;i++){
+      const base=bases[i];
+      const target=buildWhatsappUrl(base, message);
+      if(!target) continue;
+      if(!lastResort && !/^whatsapp:\/\//i.test(base)){
+        lastResort=target;
       }
-    }catch(err){
-      console.warn('Gagal membuka tab WhatsApp baru', err);
+      if(/^whatsapp:\/\//i.test(base)){
+        try{
+          window.location.href=target;
+          opened=true;
+          break;
+        }catch(err){
+          console.warn('Gagal membuka aplikasi WhatsApp', err);
+          continue;
+        }
+      }
+      try{
+        const newWindow=window.open(target, '_blank', 'noopener');
+        if(newWindow){
+          newWindow.opener=null;
+          opened=true;
+          break;
+        }
+      }catch(err){
+        console.warn('Gagal membuka tab WhatsApp baru', err);
+      }
+    }
+    if(!opened && lastResort){
+      try{
+        window.location.href=lastResort;
+        opened=true;
+      }catch(openErr){
+        console.warn('Gagal menggunakan fallback WhatsApp', openErr);
+      }
     }
     if(!opened){
       try{
-        window.open(target, '_self');
-      }catch(openErr){
-        console.warn('Gagal menggunakan fallback WhatsApp', openErr);
+        const fallback=buildWhatsappUrl(WHATSAPP_API_BASE, message);
+        if(fallback){
+          window.location.href=fallback;
+        }
+      }catch(finalErr){
+        console.warn('WhatsApp final fallback gagal', finalErr);
       }
     }
   }
