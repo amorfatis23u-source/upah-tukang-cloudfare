@@ -12,7 +12,7 @@ async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DEL
       const opts = { method, headers: { 'Accept': 'application/json' }, credentials: 'same-origin' };
       if (body !== undefined) {
         opts.body = JSON.stringify(body);
-        opts.headers['Content-Type'] = 'application/json';
+        opts.headers['Content-Type'] = 'application/json; charset=utf-8';
       }
       const res = await fetch(path, opts);
       const text = await res.text();
