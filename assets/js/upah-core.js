@@ -117,7 +117,13 @@ export function ensureApiClient() {
         return API.list(prefix, cursor, limit);
       },
       async listSnapshots(prefix, cursor = '', limit = 50) {
-        return API.list(prefix, cursor, limit);
+        return API.listSnapshots(prefix, cursor, limit);
+      },
+      async refreshSnapshotList(prefix = 'ut:snap:') {
+        return API.refreshSnapshots(prefix);
+      },
+      onSnapshotListChange(listener) {
+        return API.onSnapshotListChange(listener);
       }
     };
   }
