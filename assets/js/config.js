@@ -1,4 +1,5 @@
 const RETRY_DELAYS = [0, 600, 1400];
+const SNAP_PREFIX = 'ut:snap:';
 
 async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DELAYS } = {}) {
   let lastErr = null;
@@ -44,6 +45,8 @@ function normaliseBase(base = '/api') {
   return base.endsWith('/') ? base.slice(0, -1) : base;
 }
 
+const isPromiseLike = (value) => value && typeof value.then === 'function';
+
 export function api(base = '/api') {
   const normalised = normaliseBase(base);
   const toUrl = (path = '') => {
@@ -54,6 +57,74 @@ export function api(base = '/api') {
   };
 
   const client = {};
+  const snapshotListeners = new Set();
+
+  const notifySnapshotListeners = async (payload) => {
+    for (const listener of snapshotListeners) {
+      try {
+        const result = listener(payload);
+        if (isPromiseLike(result)) {
+          await result;
+        }
+      } catch (err) {
+        console.error('snapshot listener error', err);
+      }
+    }
+  };
+
+  const mapSnapshotItems = (rawItems = []) => {
+    return rawItems
+      .map((item) => {
+        const key = item?.key || item?.name || '';
+        if (!key) return null;
+        const meta = item?.meta && typeof item.meta === 'object' ? item.meta : {};
+        return {
+          key,
+          meta,
+          metadata: meta
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const tb = Date.parse(b.meta?.updatedAt || '') || Date.parse(b.meta?.created || b.meta?.createdAt || '') || 0;
+        const ta = Date.parse(a.meta?.updatedAt || '') || Date.parse(a.meta?.created || a.meta?.createdAt || '') || 0;
+        return tb - ta;
+      });
+  };
+
+  const fetchSnapshotResponse = async (prefix = SNAP_PREFIX) => {
+    const search = new URLSearchParams();
+    if (prefix) search.set('prefix', prefix);
+    const query = search.toString();
+    const res = await jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
+    const items = mapSnapshotItems(res?.items);
+    const response = {
+      prefix: prefix || '',
+      cursor: res?.cursor ?? null,
+      items,
+      keys: items.map((item) => ({ name: item.key, metadata: item.meta, meta: item.meta })),
+      count: items.length,
+      list_complete: true
+    };
+    return response;
+  };
+
+  const emitSnapshotChange = async (action, { key = null, meta = null, prefix = SNAP_PREFIX } = {}) => {
+    const response = await fetchSnapshotResponse(prefix);
+    const payload = {
+      action,
+      key,
+      meta,
+      prefix,
+      items: response.items,
+      cursor: response.cursor,
+      response
+    };
+    if (snapshotListeners.size > 0) {
+      await notifySnapshotListeners(payload);
+    }
+    return payload;
+  };
 
   client.getRaw = async function getRaw(key) {
     if (!key) throw new Error('key wajib');
@@ -71,7 +142,7 @@ export function api(base = '/api') {
     return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`), { method: 'DELETE' });
   };
 
-  client.listSnapshots = async function listSnapshots(prefix = 'ut:snap:', arg1 = {}, arg2 = {}) {
+  client.listSnapshots = async function listSnapshots(prefix = SNAP_PREFIX, arg1 = {}, arg2 = {}) {
     let cursor = '';
     let limit = 100;
     let values = false;
@@ -92,20 +163,32 @@ export function api(base = '/api') {
       limit = arg1;
     }
 
-    const search = new URLSearchParams();
-    if (prefix) search.set('prefix', prefix);
-    if (cursor) search.set('cursor', cursor);
-    if (limit) search.set('limit', String(limit));
-    if (values) search.set('values', '1');
-    const query = search.toString();
-    const res = await jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
-    const items = Array.isArray(res?.items) ? res.items : [];
-    items.cursor = res?.cursor ?? '';
-    items.list_complete = Boolean(res?.list_complete);
-    items.keys = Array.isArray(res?.keys) ? res.keys : [];
-    items.count = res?.count ?? items.length;
-    items.prefix = res?.prefix ?? prefix;
-    return items;
+    const parsedCursor = Number.isFinite(Number.parseInt(cursor, 10)) ? Number.parseInt(cursor, 10) : 0;
+    const response = await fetchSnapshotResponse(prefix);
+    const startIndex = Math.max(0, parsedCursor);
+    const endIndex = startIndex + Math.max(1, Number.parseInt(limit, 10) || 1);
+    const pageItems = response.items.slice(startIndex, endIndex);
+    const nextCursor = endIndex < response.items.length ? String(endIndex) : '';
+
+    const payload = {
+      ...response,
+      cursor: nextCursor,
+      count: pageItems.length,
+      list_complete: !nextCursor,
+      keys: pageItems.map((item) => ({ name: item.key, metadata: item.meta, meta: item.meta }))
+    };
+
+    if (values) {
+      const detailed = await Promise.all(
+        pageItems.map(async (item) => {
+          const detail = await client.get(item.key);
+          return { ...item, value: detail?.value ?? null, meta: detail?.meta ?? item.meta };
+        })
+      );
+      payload.items = detailed;
+    }
+
+    return payload;
   };
 
   client.makeSnapKey = function makeSnapKey({ periodeStart, periodeEnd, rumah, uuid }) {
@@ -117,7 +200,7 @@ export function api(base = '/api') {
     const pe = clean(periodeEnd);
     const rm = clean(rumah);
     const id = uuid || (crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
-    return `ut:snap:${ps}:${pe}:${rm}:${id}`;
+    return `${SNAP_PREFIX}${ps}:${pe}:${rm}:${id}`;
   };
 
   client.get = async function get(key) {
@@ -127,7 +210,11 @@ export function api(base = '/api') {
 
   client.set = async function set(key, value, meta = {}) {
     if (!key) throw new Error('key wajib');
-    return jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value, meta } });
+    const res = await jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value, meta } });
+    if (key.startsWith(SNAP_PREFIX)) {
+      await emitSnapshotChange('save', { key, meta: res?.meta ?? meta, prefix: SNAP_PREFIX });
+    }
+    return res;
   };
 
   client.deleteKey = async function deleteKey(key) {
@@ -142,6 +229,31 @@ export function api(base = '/api') {
     if (options?.values) search.set('values', '1');
     const query = search.toString();
     return jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
+  };
+
+  client.refreshSnapshotList = async function refreshSnapshotList(prefix = SNAP_PREFIX) {
+    const payload = await emitSnapshotChange('refresh', { key: null, meta: null, prefix });
+    return payload.response;
+  };
+
+  client.onSnapshotListChange = function onSnapshotListChange(listener) {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+    snapshotListeners.add(listener);
+    return () => {
+      snapshotListeners.delete(listener);
+    };
+  };
+
+  const originalDel = client.del;
+  client.del = async function wrappedDel(key) {
+    if (!key) throw new Error('key wajib');
+    const res = await originalDel(key);
+    if (key.startsWith(SNAP_PREFIX)) {
+      await emitSnapshotChange('delete', { key, meta: null, prefix: SNAP_PREFIX });
+    }
+    return res;
   };
 
   return client;
@@ -159,8 +271,17 @@ export const API = {
   async del(key) {
     return defaultClient.del(key);
   },
+  async listSnapshots(prefix = SNAP_PREFIX, arg1 = {}, arg2 = {}) {
+    return defaultClient.listSnapshots(prefix, arg1, arg2);
+  },
   async list(prefix, cursor = '', limit = 50) {
     return defaultClient.list(prefix, cursor, limit);
+  },
+  async refreshSnapshots(prefix = SNAP_PREFIX) {
+    return defaultClient.refreshSnapshotList(prefix);
+  },
+  onSnapshotListChange(listener) {
+    return defaultClient.onSnapshotListChange(listener);
   }
 };
 

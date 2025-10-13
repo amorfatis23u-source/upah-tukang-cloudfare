@@ -2441,13 +2441,22 @@ document.addEventListener('DOMContentLoaded', () => {
         updatedAt: nowISO
       };
 
+      const periodeLabel = payload.start && payload.end
+        ? `${payload.start} s/d ${payload.end}`
+        : (payload.start || payload.end || '');
+      const judul = [payload.rumah || '', periodeLabel].filter(Boolean).join(' • ') || 'Snapshot';
+
       const meta = {
-        start: payload.start || null,
-        end: payload.end || null,
-        rumah: payload.rumah || null,
+        periodStart: payload.start || null,
+        periodEnd: payload.end || null,
+        lokasi: payload.rumah || null,
+        judul,
         total: summary.total,
         totalDays: summary.totalDays,
-        updatedAt: nowISO
+        updatedAt: nowISO,
+        start: payload.start || null,
+        end: payload.end || null,
+        rumah: payload.rumah || null
       };
 
       let key = state.currentKey;

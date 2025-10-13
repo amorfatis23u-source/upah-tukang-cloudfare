@@ -103,19 +103,16 @@
     import { utils, showToast, formatError, ensureApiClient } from './assets/js/upah-core.js';
 
     const api = ensureApiClient();
-
     const AUTO_REFRESH_MS = 15000;
 
-    const YEAR = new Date().getFullYear();
-    document.getElementById('year').textContent = YEAR;
+    document.getElementById('year').textContent = new Date().getFullYear();
 
     const state = {
-      all: [],
+      items: [],
       filtered: [],
       page: 1,
       perPage: 20,
       loading: false,
-      rawKeys: [],
       detailCache: new Map()
     };
 
@@ -126,6 +123,8 @@
     const totalInfo = document.getElementById('totalInfo');
     const pageInfo = document.getElementById('pageInfo');
     const cursorInfo = document.getElementById('cursorInfo');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
 
     const filterControls = {
       start: document.getElementById('filterStart'),
@@ -133,126 +132,90 @@
       search: document.getElementById('filterSearch')
     };
 
-    async function fetchAll({ silent = false } = {}) {
-      if (state.loading) return;
-      state.loading = true;
-      state.rawKeys = [];
-      tableSkeleton.classList.remove('hidden');
-      tableWrap.classList.add('hidden');
-      emptyState.classList.add('hidden');
-      totalInfo.textContent = 'Memuat data...';
-      let cursor = '';
-      let safety = 0;
-      try {
-        do {
-          const res = await api.listSnapshots('ut:snap:', cursor, 100);
-          state.rawKeys.push(...(res.keys || []));
-          cursor = res.cursor || '';
-          safety += 1;
-          if (res.list_complete || !cursor || safety > 20) break;
-        } while (true);
+    const normaliseRecord = (entry) => {
+      const key = entry?.key || entry?.name || '';
+      if (!key) return null;
+      const meta = entry?.meta && typeof entry.meta === 'object' ? entry.meta : (entry?.metadata || {});
+      const parsed = utils.parseSnapshotKey(key);
+      const start = meta.periodStart || meta.start || parsed.start || '';
+      const end = meta.periodEnd || meta.end || parsed.end || '';
+      const rumah = meta.lokasi || meta.rumah || parsed.rumah || '';
+      const updatedAt = meta.updatedAt || meta.updated_at || '';
+      const total = meta.total ?? meta.totalUpah ?? meta.total_upah ?? null;
+      const totalDays = meta.totalDays ?? meta.totalHari ?? meta.total_hari ?? null;
+      const judul = meta.judul || '';
+      return { key, start, end, rumah, lokasi: rumah, updatedAt, total, totalDays, meta: { ...meta, judul } };
+    };
 
-        const keep = new Set(state.rawKeys.map((entry) => entry.name));
-        Array.from(state.detailCache.keys()).forEach((key) => {
-          if (!keep.has(key)) state.detailCache.delete(key);
-        });
+    const handleSnapshotList = async ({ items }) => {
+      const list = Array.isArray(items) ? items : [];
+      const mapped = list.map(normaliseRecord).filter(Boolean);
+      const keepKeys = new Set(mapped.map((item) => item.key));
 
-        await enrichRecords();
-        applyFilter();
-        if (!silent) {
-          showToast('Data rekap diperbarui', 'success');
+      Array.from(state.detailCache.keys()).forEach((key) => {
+        if (!keepKeys.has(key)) {
+          state.detailCache.delete(key);
         }
-      } catch (err) {
-        showToast(formatError(err), 'error');
-        tableSkeleton.classList.add('hidden');
-      } finally {
-        state.loading = false;
-      }
-    }
+      });
 
-    async function enrichRecords() {
-      const records = [];
       const needFetch = [];
 
-      state.rawKeys.forEach((entry) => {
-        const { name, metadata = {} } = entry;
-        const parsed = utils.parseSnapshotKey(name);
-        const cached = state.detailCache.get(name);
-        const record = {
-          key: name,
-          start: metadata.start || parsed.start || '',
-          end: metadata.end || parsed.end || '',
-          rumah: metadata.rumah || parsed.rumah || '',
-          updatedAt: metadata.updatedAt || '',
-          total: metadata.total ?? metadata.totalUpah ?? null,
-          totalDays: metadata.totalDays ?? null,
-          meta: metadata
-        };
-
+      mapped.forEach((record) => {
+        const cached = state.detailCache.get(record.key);
         if (cached) {
           Object.assign(record, cached);
         } else if (record.total == null || record.totalDays == null) {
           needFetch.push(record);
         }
-
-        records.push(record);
       });
 
       if (needFetch.length) {
-        const concurrency = Math.min(4, needFetch.length);
-        let index = 0;
-        const workers = Array.from({ length: concurrency }, () => (async () => {
-          while (index < needFetch.length) {
-            const currentIndex = index++;
-            const item = needFetch[currentIndex];
-            if (!item) break;
+        await Promise.all(
+          needFetch.map(async (record) => {
             try {
-              const res = await api.loadData(item.key);
-              const rows = res?.value?.rows || [];
-              const detail = {
-                total: utils.sumRows(rows),
-                totalDays: utils.sumDays(rows),
-                start: res?.value?.start || item.start,
-                end: res?.value?.end || item.end,
-                rumah: res?.value?.rumah || item.rumah,
-                updatedAt: res?.meta?.updatedAt || item.updatedAt
-              };
-              Object.assign(item, detail);
-              state.detailCache.set(item.key, {
-                total: detail.total,
-                totalDays: detail.totalDays,
-                start: detail.start,
-                end: detail.end,
-                rumah: detail.rumah,
-                updatedAt: detail.updatedAt
-              });
+              const res = await api.loadData(record.key);
+              const value = res?.value || {};
+              const rows = value.rows || value.data?.rows || [];
+              const total = value.summary?.total ?? utils.sumRows(rows);
+              const totalDays = value.summary?.totalDays ?? utils.sumDays(rows);
+              const start = value.start || value.periodStart || record.start;
+              const end = value.end || value.periodEnd || record.end;
+              const rumah = value.rumah || value.lokasi || record.rumah;
+              const updatedAt = res?.meta?.updatedAt || record.updatedAt;
+              const detail = { total, totalDays, start, end, rumah, lokasi: rumah, updatedAt };
+              Object.assign(record, detail);
+              state.detailCache.set(record.key, detail);
             } catch (err) {
-              console.error('gagal load detail', item.key, err);
-              item.total = item.total ?? 0;
-              item.totalDays = item.totalDays ?? 0;
+              console.error('gagal load detail', record.key, err);
+              record.total = record.total ?? 0;
+              record.totalDays = record.totalDays ?? 0;
             }
-          }
-        })());
-        await Promise.all(workers);
+          })
+        );
       }
 
-      state.all = records.sort((a, b) => {
-        const dateA = new Date(a.updatedAt || 0).getTime();
-        const dateB = new Date(b.updatedAt || 0).getTime();
-        return dateB - dateA;
+      state.items = mapped.sort((a, b) => {
+        const tb = new Date(b.updatedAt || 0).getTime();
+        const ta = new Date(a.updatedAt || 0).getTime();
+        return tb - ta;
       });
-    }
+      applyFilter();
+      tableSkeleton.classList.add('hidden');
+      state.loading = false;
+    };
+
+    const unsubscribe = api.onSnapshotListChange(handleSnapshotList);
 
     function applyFilter() {
       const startVal = filterControls.start.value;
       const endVal = filterControls.end.value;
       const searchVal = filterControls.search.value.trim().toLowerCase();
 
-      state.filtered = state.all.filter((item) => {
+      state.filtered = state.items.filter((item) => {
         if (startVal && (!item.start || item.start < startVal)) return false;
         if (endVal && (!item.end || item.end > endVal)) return false;
         if (searchVal) {
-          const haystack = [item.key, item.rumah, item.start, item.end].join(' ').toLowerCase();
+          const haystack = [item.key, item.rumah, item.start, item.end, item.meta?.judul].join(' ').toLowerCase();
           if (!haystack.includes(searchVal)) return false;
         }
         return true;
@@ -269,18 +232,20 @@
     function render() {
       const rows = paginate();
       tableBody.innerHTML = '';
+
       if (!state.filtered.length) {
         tableSkeleton.classList.add('hidden');
         tableWrap.classList.add('hidden');
         emptyState.classList.remove('hidden');
-        totalInfo.textContent = '0 snapshot';
+        totalInfo.textContent = 'Belum ada snapshot';
         pageInfo.textContent = 'Halaman 0';
         cursorInfo.textContent = '';
         return;
       }
+
+      emptyState.classList.add('hidden');
       tableSkeleton.classList.add('hidden');
       tableWrap.classList.remove('hidden');
-      emptyState.classList.add('hidden');
 
       rows.forEach((item) => {
         const periode = item.start && item.end ? `${item.start} – ${item.end}` : '—';
@@ -306,20 +271,22 @@
       });
 
       const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
+      const startIndex = (state.page - 1) * state.perPage;
+      const endIndex = Math.min(state.filtered.length, startIndex + rows.length);
       pageInfo.textContent = `Halaman ${state.page} dari ${totalPages}`;
       totalInfo.textContent = `${state.filtered.length} snapshot`;
-      document.getElementById('btnPrev').disabled = state.page <= 1;
-      document.getElementById('btnNext').disabled = state.page >= totalPages;
-      cursorInfo.textContent = `${rows.length} baris ditampilkan`;
+      btnPrev.disabled = state.page <= 1;
+      btnNext.disabled = state.page >= totalPages;
+      cursorInfo.textContent = `Menampilkan ${startIndex + 1}–${endIndex} dari ${state.filtered.length} snapshot`;
     }
 
-    document.getElementById('btnPrev').addEventListener('click', () => {
+    btnPrev.addEventListener('click', () => {
       if (state.page <= 1) return;
       state.page -= 1;
       render();
     });
 
-    document.getElementById('btnNext').addEventListener('click', () => {
+    btnNext.addEventListener('click', () => {
       const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
       if (state.page >= totalPages) return;
       state.page += 1;
@@ -340,14 +307,16 @@
     document.addEventListener('click', async (event) => {
       if (event.target.matches('.btnDelete')) {
         const key = event.target.getAttribute('data-key');
+        if (!key) return;
         if (!window.confirm('Hapus snapshot ini?')) return;
         try {
+          state.loading = true;
+          tableSkeleton.classList.remove('hidden');
           await api.deleteKey(key);
           showToast('Snapshot dihapus', 'success');
-          state.rawKeys = state.rawKeys.filter((entry) => entry.name !== key);
-          state.all = state.all.filter((entry) => entry.key !== key);
-          applyFilter();
         } catch (err) {
+          state.loading = false;
+          tableSkeleton.classList.add('hidden');
           showToast(formatError(err), 'error');
         }
       }
@@ -387,13 +356,36 @@
       showToast('File CSV dibuat', 'success');
     });
 
-    fetchAll({ silent: true });
+    const reload = async ({ silent = false } = {}) => {
+      if (state.loading) return;
+      state.loading = true;
+      tableSkeleton.classList.remove('hidden');
+      tableWrap.classList.add('hidden');
+      emptyState.classList.add('hidden');
+      totalInfo.textContent = 'Memuat data...';
+      try {
+        await api.refreshSnapshotList('ut:snap:');
+        if (!silent) {
+          showToast('Data rekap diperbarui', 'success');
+        }
+      } catch (err) {
+        state.loading = false;
+        tableSkeleton.classList.add('hidden');
+        showToast(formatError(err), 'error');
+      }
+    };
+
+    await reload({ silent: true });
 
     setInterval(() => {
       if (document.hidden) return;
       if (state.loading) return;
-      fetchAll({ silent: true });
+      reload({ silent: true });
     }, AUTO_REFRESH_MS);
+
+    window.addEventListener('pagehide', () => {
+      unsubscribe();
+    });
   </script>
 </body>
 </html>

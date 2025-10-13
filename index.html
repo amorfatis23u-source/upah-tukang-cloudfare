@@ -102,18 +102,14 @@
 
     const api = ensureApiClient();
 
-    const NEW_COUNTER_KEY = 'upahTukang:newCounter';
-
     const YEAR = new Date().getFullYear();
     document.getElementById('year').textContent = YEAR;
 
     const state = {
-      currentCursor: '',
-      nextCursor: '',
-      history: [],
-      cache: new Map(),
-      loading: false,
-      listComplete: false
+      items: [],
+      page: 1,
+      perPage: 10,
+      loading: false
     };
 
     const tableBody = document.getElementById('listBody');
@@ -121,144 +117,131 @@
     const emptyState = document.getElementById('emptyState');
     const cursorInfo = document.getElementById('cursorInfo');
     const listInfo = document.getElementById('listInfo');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
 
-    function buildKeyInfo(key, metadata = {}) {
-      const { start, end, rumah } = utils.parseSnapshotKey(key);
-      const periode = start && end ? `${start} – ${end}` : 'Tidak diketahui';
-      const rumahLabel = rumah || metadata.rumah || '—';
-      const total = metadata.total ?? metadata.totalUpah ?? null;
-      const updatedAt = metadata.updatedAt ? new Date(metadata.updatedAt).toLocaleString('id-ID') : '—';
-      const totalLabel = total != null ? utils.formatRupiah(total) : '—';
-      return { periode, rumah: rumahLabel, updatedAt, totalLabel };
+    const normaliseItem = (entry) => {
+      const key = entry?.key || entry?.name || '';
+      if (!key) return null;
+      const meta = entry?.meta && typeof entry.meta === 'object' ? entry.meta : (entry?.metadata || {});
+      const parsed = utils.parseSnapshotKey(key);
+      const start = meta.periodStart || meta.start || parsed.start || '';
+      const end = meta.periodEnd || meta.end || parsed.end || '';
+      const rumah = meta.lokasi || meta.rumah || parsed.rumah || '';
+      const updatedAt = meta.updatedAt || meta.updated_at || '';
+      const total = meta.total ?? meta.totalUpah ?? meta.total_upah ?? null;
+      return { key, start, end, rumah, updatedAt, total, meta };
+    };
+
+    const handleSnapshotList = ({ items }) => {
+      const list = Array.isArray(items) ? items : [];
+      state.items = list
+        .map(normaliseItem)
+        .filter(Boolean)
+        .sort((a, b) => {
+          const tb = new Date(b.updatedAt || 0).getTime();
+          const ta = new Date(a.updatedAt || 0).getTime();
+          return tb - ta;
+        });
+      state.page = 1;
+      state.loading = false;
+      render();
+    };
+
+    const unsubscribe = api.onSnapshotListChange(handleSnapshotList);
+
+    function paginate() {
+      const startIndex = (state.page - 1) * state.perPage;
+      return state.items.slice(startIndex, startIndex + state.perPage);
     }
 
-    function renderRows(keys = []) {
+    function render() {
+      const rows = paginate();
       tableBody.innerHTML = '';
-      keys.forEach(({ name, metadata = {} }) => {
-        const info = buildKeyInfo(name, metadata || {});
+
+      if (!state.items.length) {
+        skeleton.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        listInfo.textContent = 'Belum ada snapshot';
+        cursorInfo.textContent = '';
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      skeleton.classList.add('hidden');
+
+      rows.forEach((item) => {
+        const periode = item.start && item.end ? `${item.start} – ${item.end}` : 'Tidak diketahui';
+        const rumahLabel = item.rumah || '—';
+        const totalLabel = item.total != null ? utils.formatRupiah(item.total) : '—';
+        const updatedLabel = item.updatedAt ? new Date(item.updatedAt).toLocaleString('id-ID') : '—';
         const tr = document.createElement('tr');
         tr.className = 'transition hover:bg-slate-50';
         tr.dataset.testid = 'snapshot-row';
         tr.innerHTML = `
           <td class="py-3 pr-4 align-top">
-            <div class="font-medium text-slate-800">${info.periode}</div>
-            <div class="text-xs text-slate-400">${name}</div>
+            <div class="font-medium text-slate-800">${periode}</div>
+            <div class="text-xs text-slate-400">${item.key}</div>
           </td>
-          <td class="py-3 pr-4 align-top text-slate-700">${info.rumah}</td>
-          <td class="py-3 pr-4 align-top text-right font-medium text-slate-800">${info.totalLabel}</td>
-          <td class="py-3 pr-4 align-top text-slate-600">${info.updatedAt}</td>
+          <td class="py-3 pr-4 align-top text-slate-700">${rumahLabel}</td>
+          <td class="py-3 pr-4 align-top text-right font-medium text-slate-800">${totalLabel}</td>
+          <td class="py-3 pr-4 align-top text-slate-600">${updatedLabel}</td>
           <td class="py-3 pl-4 text-right">
             <div class="flex justify-end gap-2">
-              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="form.html?key=${encodeURIComponent(name)}">Buka</a>
-              <button class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-testid="dashboard-delete" data-key="${name}">Hapus</button>
+              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="form.html?key=${encodeURIComponent(item.key)}">Buka</a>
+              <button class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-testid="dashboard-delete" data-key="${item.key}">Hapus</button>
             </div>
           </td>
         `;
         tableBody.appendChild(tr);
       });
+
+      const total = state.items.length;
+      const totalPages = Math.max(1, Math.ceil(total / state.perPage));
+      const startIndex = (state.page - 1) * state.perPage;
+      const endIndex = Math.min(total, startIndex + rows.length);
+
+      listInfo.textContent = `Menampilkan ${startIndex + 1}–${endIndex} dari ${total} snapshot`;
+      cursorInfo.textContent = `Halaman ${state.page} dari ${totalPages}`;
+      btnPrev.disabled = state.page <= 1;
+      btnNext.disabled = state.page >= totalPages;
     }
 
-    function resetPagination() {
-      state.currentCursor = '';
-      state.nextCursor = '';
-      state.listComplete = false;
-      state.history = [];
-      state.cache.clear();
-    }
-
-    async function showPage(cursor = '') {
-      if (state.loading) return false;
-      const cached = state.cache.get(cursor);
-      if (!cached) {
-        tableBody.innerHTML = '';
-        skeleton.classList.remove('hidden');
-        listInfo.textContent = 'Memuat data...';
-      } else {
-        skeleton.classList.add('hidden');
-      }
-      emptyState.classList.add('hidden');
-
-      try {
-        state.loading = true;
-        const payload = cached || await api.listSnapshots('ut:snap:', cursor, 15);
-        if (!cached) {
-          state.cache.set(cursor, payload);
-        }
-        const { keys = [], cursor: nextCursor = '', list_complete } = payload;
-        skeleton.classList.add('hidden');
-
-        if (!keys.length && !cursor && !nextCursor) {
-          tableBody.innerHTML = '';
-          emptyState.classList.remove('hidden');
-          listInfo.textContent = 'Belum ada snapshot';
-          cursorInfo.textContent = '';
-          state.currentCursor = '';
-          state.nextCursor = '';
-          state.listComplete = true;
-          document.getElementById('btnPrev').disabled = true;
-          document.getElementById('btnNext').disabled = true;
-          return true;
-        }
-
-        renderRows(keys.slice(0, 10));
-        state.currentCursor = cursor;
-        state.nextCursor = nextCursor || '';
-        state.listComplete = !!list_complete || (!state.nextCursor && keys.length < 15);
-
-        cursorInfo.textContent = state.listComplete
-          ? 'Sudah halaman terakhir'
-          : (state.nextCursor ? `Cursor ${state.nextCursor.slice(0, 8)}…` : '');
-        listInfo.textContent = `${Math.min(keys.length, 10)} dari ${keys.length} entri halaman ini`;
-
-        document.getElementById('btnPrev').disabled = state.history.length === 0;
-        document.getElementById('btnNext').disabled = state.listComplete;
-        return true;
-      } catch (err) {
-        skeleton.classList.add('hidden');
-        emptyState.classList.add('hidden');
-        showToast(formatError(err), 'error');
-        listInfo.textContent = 'Gagal memuat data';
-        return false;
-      } finally {
-        state.loading = false;
-      }
-    }
-
-    document.getElementById('btnPrev').addEventListener('click', async () => {
-      if (!state.history.length) return;
-      const target = state.history[state.history.length - 1];
-      const ok = await showPage(target);
-      if (ok) {
-        state.history.pop();
-      }
+    btnPrev.addEventListener('click', () => {
+      if (state.page <= 1) return;
+      state.page -= 1;
+      render();
     });
 
-    document.getElementById('btnNext').addEventListener('click', async () => {
-      if (state.listComplete && !state.nextCursor) return;
-      const target = state.nextCursor;
-      const previous = state.currentCursor;
-      const ok = await showPage(target);
-      if (ok) {
-        state.history.push(previous);
-      }
+    btnNext.addEventListener('click', () => {
+      const totalPages = Math.max(1, Math.ceil(state.items.length / state.perPage));
+      if (state.page >= totalPages) return;
+      state.page += 1;
+      render();
     });
 
     document.addEventListener('click', async (event) => {
       const target = event.target;
       if (target.matches('button[data-key]')) {
         const key = target.getAttribute('data-key');
-        const confirmed = window.confirm('Hapus snapshot ini? Data tidak dapat dikembalikan.');
-        if (!confirmed) return;
+        if (!key) return;
+        if (!window.confirm('Hapus snapshot ini? Data tidak dapat dikembalikan.')) return;
         try {
+          state.loading = true;
+          skeleton.classList.remove('hidden');
           await api.deleteKey(key);
           showToast('Snapshot dihapus', 'success');
-          resetPagination();
-          await showPage('');
         } catch (err) {
+          state.loading = false;
+          skeleton.classList.add('hidden');
           showToast(formatError(err), 'error');
         }
       }
     });
+
+    const NEW_COUNTER_KEY = 'upahTukang:newCounter';
 
     function nextNewIndex() {
       try {
@@ -282,7 +265,27 @@
     document.getElementById('btnNew').addEventListener('click', openNewForm);
     document.getElementById('ctaNew').addEventListener('click', openNewForm);
 
-    showPage('');
+    const reload = async () => {
+      if (state.loading) return;
+      state.loading = true;
+      skeleton.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      listInfo.textContent = 'Memuat data...';
+      cursorInfo.textContent = '';
+      try {
+        await api.refreshSnapshotList('ut:snap:');
+      } catch (err) {
+        state.loading = false;
+        skeleton.classList.add('hidden');
+        showToast(formatError(err), 'error');
+      }
+    };
+
+    await reload();
+
+    window.addEventListener('pagehide', () => {
+      unsubscribe();
+    });
   </script>
 </body>
 </html>
