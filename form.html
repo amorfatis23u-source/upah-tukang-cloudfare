@@ -11,6 +11,29 @@
     import { api } from "./assets/js/config.js";
     window.UpahAPI = window.UpahAPI || api();
   </script>
+  <script>
+    (function preserveQueryOnCleanUrl(){
+      try {
+        if (typeof window === 'undefined' || !window.location) {
+          return;
+        }
+        const current = new URL(window.location.href);
+        const isHttp = current.protocol === 'http:' || current.protocol === 'https:';
+        if (!isHttp) return;
+        if (!/\/form\.html$/i.test(current.pathname)) return;
+        const search = current.search || '';
+        const hash = current.hash || '';
+        const nextPath = current.pathname.replace(/form\.html$/i, 'form');
+        const nextUrl = `${nextPath}${search}${hash}`;
+        const currentUrl = `${current.pathname}${search}${hash}`;
+        if (nextUrl !== currentUrl) {
+          window.location.replace(nextUrl);
+        }
+      } catch (err) {
+        console.warn('Gagal menormalkan URL form', err);
+      }
+    })();
+  </script>
   <style>
     :root {
       color-scheme: light dark;
@@ -2217,7 +2240,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   // Auto "Kosongkan" when ?new=N
   (function(){
-    const p=new URLSearchParams(location.search); const hasNew=p.has('new')||(location.hash||'').toLowerCase().includes('new');
+    const currentUrl = new URL(window.location.href);
+    const p=currentUrl.searchParams; const hasNew=p.has('new')||(currentUrl.hash||'').toLowerCase().includes('new');
     if(!hasNew) return;
     function tryFns(){ for(const n of ['kosongkan','clearAll','resetAll','resetForm']){ const f=window[n]; if(typeof f==='function'){ const c=window.confirm; window.confirm=()=>true; try{f();} finally{window.confirm=c;} return true; } } return false; }
     function tryBtns(){ const c=Array.from(document.querySelectorAll('button,[role="button"],a')).filter(el=>/\b(kosongkan|hapus\s*semua|clear)\b/i.test(el.textContent||'')); if(c.length){ const C=window.confirm; window.confirm=()=>true; try{c[0].click();} finally{window.confirm=C;} return true; } return false; }
@@ -2298,8 +2322,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2) If opened with ?hist=YYYY-MM-DD, restore that periode's snapshot into current working storage
   (function maybeRestore(){
-    const p = new URLSearchParams(location.search);
-    const histStart = p.get('hist');
+    const currentUrl = new URL(window.location.href);
+    const histStart = currentUrl.searchParams.get('hist');
     if (!histStart) return;
     try {
       const snap = loadJSON(SNAP_PREFIX + histStart, null);
@@ -2735,7 +2759,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const API = await ensureApi();
-  const params = new URLSearchParams(location.search);
+  const currentUrl = new URL(window.location.href);
+  const params = currentUrl.searchParams;
 
   const escapeCSS = (value) => {
     if (window.CSS && typeof window.CSS.escape === 'function') {
