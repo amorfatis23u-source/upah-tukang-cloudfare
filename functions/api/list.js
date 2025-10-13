@@ -1,15 +1,19 @@
 import { getKVBinding } from './_kv';
 
+const JSON_HEADERS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
+
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 500;
+
 function json(data, { status = 200, headers = {} } = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      ...headers
-    }
+    headers: { ...JSON_HEADERS, ...headers }
   });
 }
 
@@ -28,51 +32,57 @@ export async function onRequest({ request, env }) {
   }
 
   const url = new URL(request.url);
-  const prefix = url.searchParams.get('prefix') || 'ut:snap:';
-  const limitParam = url.searchParams.get('limit');
+  const prefix = url.searchParams.get('prefix') ?? 'ut:snap:';
   const cursor = url.searchParams.get('cursor') || undefined;
   const withValues = url.searchParams.get('values') === '1';
 
-  let limit = Number.parseInt(limitParam || '100', 10);
+  let limit = Number.parseInt(url.searchParams.get('limit') || `${DEFAULT_LIMIT}`, 10);
   if (!Number.isFinite(limit) || limit <= 0) {
-    limit = 100;
+    limit = DEFAULT_LIMIT;
   }
-  limit = Math.min(Math.max(limit, 1), 500);
+  limit = Math.min(Math.max(limit, 1), MAX_LIMIT);
 
   try {
-    const options = { prefix, limit };
+    const listOptions = { prefix, limit };
     if (cursor) {
-      options.cursor = cursor;
+      listOptions.cursor = cursor;
     }
 
-    const iter = await kv.list(options);
-    const items = [];
+    const iter = await kv.list(listOptions);
     const keys = [];
+    const items = [];
 
     for (const entry of iter.keys || []) {
-      const baseMeta = entry.metadata || {};
+      const fallbackMeta = normaliseMeta(entry.metadata);
+      let resolvedMeta = fallbackMeta;
       let value;
-      let metadata = baseMeta;
 
       if (withValues) {
         const detail = await kv.getWithMetadata(entry.name, { type: 'json' });
         value = detail?.value ?? null;
-        metadata = detail?.metadata ?? baseMeta ?? {};
+        const metaFromDetail = normaliseMeta(detail?.metadata);
+        if (Object.keys(metaFromDetail).length > 0) {
+          resolvedMeta = metaFromDetail;
+        }
       }
 
-      items.push({
-        key: entry.name,
-        metadata,
-        ...(withValues ? { value } : {})
-      });
-      keys.push({ name: entry.name, metadata: metadata || {} });
+      const keyInfo = { name: entry.name, metadata: resolvedMeta, meta: resolvedMeta };
+      keys.push(keyInfo);
+
+      const item = { key: entry.name, name: entry.name, metadata: resolvedMeta, meta: resolvedMeta };
+      if (withValues) {
+        item.value = value;
+      }
+      items.push(item);
     }
+
+    const nextCursor = iter.list_complete ? null : (iter.cursor || null);
 
     return json({
       ok: true,
       prefix,
       count: items.length,
-      cursor: iter.cursor || '',
+      cursor: nextCursor,
       list_complete: Boolean(iter.list_complete),
       items,
       keys
@@ -81,4 +91,11 @@ export async function onRequest({ request, env }) {
     console.error('api/list error', err);
     return json({ ok: false, error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+function normaliseMeta(meta) {
+  if (!meta || typeof meta !== 'object') {
+    return {};
+  }
+  return { ...meta };
 }
