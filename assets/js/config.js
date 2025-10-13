@@ -16,8 +16,15 @@ async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DEL
       const res = await fetch(path, opts);
       const text = await res.text();
       const data = text ? JSON.parse(text) : {};
-      if (!res.ok || data?.ok === false) {
+      if (res.status === 404) {
+        return { ok: false, status: 404, ...data };
+      }
+      if (!res.ok) {
         const msg = data?.error || res.statusText || 'Request gagal';
+        throw new Error(msg);
+      }
+      if (data?.ok === false) {
+        const msg = data?.error || 'Request gagal';
         throw new Error(msg);
       }
       return data;
@@ -64,13 +71,41 @@ export function api(base = '/api') {
     return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`), { method: 'DELETE' });
   };
 
-  client.listSnapshots = async function listSnapshots(prefix = 'ut:snap:', { limit = 100, values = false } = {}) {
+  client.listSnapshots = async function listSnapshots(prefix = 'ut:snap:', arg1 = {}, arg2 = {}) {
+    let cursor = '';
+    let limit = 100;
+    let values = false;
+
+    if (typeof arg1 === 'object' && arg1 !== null && !Array.isArray(arg1)) {
+      cursor = arg1.cursor ?? '';
+      limit = arg1.limit ?? limit;
+      values = arg1.values ?? values;
+    } else if (typeof arg1 === 'string') {
+      cursor = arg1;
+      if (typeof arg2 === 'number') {
+        limit = arg2;
+      } else if (typeof arg2 === 'object' && arg2 !== null) {
+        limit = arg2.limit ?? limit;
+        values = arg2.values ?? values;
+      }
+    } else if (typeof arg1 === 'number') {
+      limit = arg1;
+    }
+
     const search = new URLSearchParams();
     if (prefix) search.set('prefix', prefix);
+    if (cursor) search.set('cursor', cursor);
     if (limit) search.set('limit', String(limit));
     if (values) search.set('values', '1');
-    const res = await jsonRequest(toUrl(`/list?${search.toString()}`));
-    return res?.items ?? [];
+    const query = search.toString();
+    const res = await jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
+    const items = Array.isArray(res?.items) ? res.items : [];
+    items.cursor = res?.cursor ?? '';
+    items.list_complete = Boolean(res?.list_complete);
+    items.keys = Array.isArray(res?.keys) ? res.keys : [];
+    items.count = res?.count ?? items.length;
+    items.prefix = res?.prefix ?? prefix;
+    return items;
   };
 
   client.makeSnapKey = function makeSnapKey({ periodeStart, periodeEnd, rumah, uuid }) {
