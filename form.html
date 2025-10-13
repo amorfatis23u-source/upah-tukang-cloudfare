@@ -676,7 +676,7 @@
         </div>
         <div class="field search-field">
           <label class="muted" for="searchName">Cari Pekerja</label>
-          <input id="searchName" type="search" class="input" placeholder="Cari nama pekerja…" autocomplete="off">
+          <input id="searchName" name="searchName" type="search" class="input" placeholder="Cari nama pekerja…" autocomplete="off">
         </div>
       </div>
       <div id="mainActionsFixed" class="stack action-shell">
@@ -684,7 +684,7 @@
           <div class="field">
             <label class="muted" for="periodStart">Mulai</label>
             <span class="date-wrap">
-              <input type="text" id="periodStart" class="input" placeholder="yyyy-mm-dd" autocomplete="off" spellcheck="false" pattern="\d{4}-\d{2}-\d{2}">
+              <input type="text" id="periodStart" name="periodStart" class="input" placeholder="yyyy-mm-dd" autocomplete="off" spellcheck="false" pattern="\d{4}-\d{2}-\d{2}">
               <button type="button" class="cal-btn" data-cal-for="periodStart" aria-label="Buka kalender mulai">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="3" y="5" width="18" height="16" rx="2" ry="2" stroke="currentColor" />
@@ -696,7 +696,7 @@
           <div class="field">
             <label class="muted" for="periodEnd">Selesai</label>
             <span class="date-wrap">
-              <input type="text" id="periodEnd" class="input" placeholder="yyyy-mm-dd" autocomplete="off" spellcheck="false" pattern="\d{4}-\d{2}-\d{2}">
+              <input type="text" id="periodEnd" name="periodEnd" class="input" placeholder="yyyy-mm-dd" autocomplete="off" spellcheck="false" pattern="\d{4}-\d{2}-\d{2}">
               <button type="button" class="cal-btn" data-cal-for="periodEnd" aria-label="Buka kalender selesai">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="3" y="5" width="18" height="16" rx="2" ry="2" stroke="currentColor" />
@@ -749,15 +749,15 @@
             <div class="grid rate-grid">
               <div class="field compact">
                 <label class="muted" for="rateSenior">Senior</label>
-                <input id="rateSenior" type="number" class="input input-compact" oninput="classRates['Senior']=Number(this.value||0); rerender();">
+                <input id="rateSenior" name="classRates.senior" type="number" class="input input-compact" oninput="classRates['Senior']=Number(this.value||0); rerender();">
               </div>
               <div class="field compact">
                 <label class="muted" for="rateTukang">Tukang</label>
-                <input id="rateTukang" type="number" class="input input-compact" oninput="classRates['Tukang']=Number(this.value||0); rerender();">
+                <input id="rateTukang" name="classRates.tukang" type="number" class="input input-compact" oninput="classRates['Tukang']=Number(this.value||0); rerender();">
               </div>
               <div class="field compact">
                 <label class="muted" for="rateKenek">Kenek</label>
-                <input id="rateKenek" type="number" class="input input-compact" oninput="classRates['Kenek']=Number(this.value||0); rerender();">
+                <input id="rateKenek" name="classRates.kenek" type="number" class="input input-compact" oninput="classRates['Kenek']=Number(this.value||0); rerender();">
               </div>
             </div>
             <div class="row" style="justify-content:flex-end;">
@@ -766,11 +766,11 @@
             <div class="row">
               <div class="field compact">
                 <label class="muted" for="thresholdInput">Ambang Uang Beras</label>
-                <input id="thresholdInput" type="number" step="1" min="0" class="input input-compact">
+                <input id="thresholdInput" name="allowanceThreshold" type="number" step="1" min="0" class="input input-compact">
               </div>
               <div class="field compact">
                 <label class="muted" for="berasInput">Nilai Uang Beras</label>
-                <input id="berasInput" type="number" step="1" min="0" class="input input-compact">
+                <input id="berasInput" name="allowanceAmount" type="number" step="1" min="0" class="input input-compact">
               </div>
               <button class="btn small" type="button" onclick="updateBerasRule()">Terapkan</button>
             </div>
@@ -782,7 +782,7 @@
             <div class="row" style="align-items:flex-end;">
               <div class="field" style="flex:1 1 220px;">
                 <label class="muted" for="inpRumah">Tambah Label Rumah</label>
-                <input id="inpRumah" class="input" placeholder="mis. A11 atau C1">
+                <input id="inpRumah" name="rumahBaru" class="input" placeholder="mis. A11 atau C1">
               </div>
               <button class="btn small" type="button" onclick="addRumah()">Tambah</button>
               <button class="btn small" type="button" onclick="clearRumah()">Kosongkan Daftar</button>
@@ -794,7 +794,7 @@
         </details>
         <div class="row">
           <label for="toggleHideCG" class="toggle-field">
-            <input type="checkbox" id="toggleHideCG">
+            <input type="checkbox" id="toggleHideCG" name="hideClassGroup">
             <span>Sembunyikan kolom Kelas &amp; Group</span>
           </label>
         </div>
@@ -1173,15 +1173,15 @@ const upahPokok = hari * rate;
         const tr=document.createElement('tr');
         const tdNo=document.createElement('td'); tdNo.className='center'; tdNo.textContent=idx+1; tr.appendChild(tdNo);
 
-        const tdNama=document.createElement('td'); tdNama.innerHTML = `<input class='input' value="${r.nama||''}" oninput="rows[${idx}].nama=this.value; save('rows',rows);" />`; tr.appendChild(tdNama);
+        const tdNama=document.createElement('td'); tdNama.innerHTML = `<input class='input' name="rows[${idx}].nama" value="${r.nama||''}" oninput="rows[${idx}].nama=this.value; save('rows',rows);" />`; tr.appendChild(tdNama);
 
         const tdKelas=document.createElement('td');
-        const sK=document.createElement('select'); sK.className='input';
+        const sK=document.createElement('select'); sK.className='input'; sK.name = `rows[${idx}].kelas`;
         ['Senior','Tukang','Kenek'].forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; if((r.kelas||'Tukang')===k) o.selected=true; sK.appendChild(o); });
         sK.onchange=(e)=>{ rows[idx].kelas=e.target.value; rerender(); }; tdKelas.appendChild(sK); tr.appendChild(tdKelas);
 
         const tdGroup=document.createElement('td');
-        const sG=document.createElement('select'); sG.className='input';
+        const sG=document.createElement('select'); sG.className='input'; sG.name = `rows[${idx}].group`;
         const opt0=document.createElement('option'); opt0.value=''; opt0.textContent='—'; sG.appendChild(opt0);
         groupList.forEach(gg=>{ const o=document.createElement('option'); o.value=gg; o.textContent=gg; if((r.group||'')===gg) o.selected=true; sG.appendChild(o); });
         sG.onchange=(e)=>{ rows[idx].group = e.target.value; save('rows', rows); rerender(); };
@@ -1194,7 +1194,7 @@ const upahPokok = hari * rate;
           const di = displayDayOrder[ui];
           const val = r.rumah[di] || '';
           const tdR=document.createElement('td'); tdR.className='center day-cell';
-          const sel=document.createElement('select'); sel.className='input day-select';
+          const sel=document.createElement('select'); sel.className='input day-select'; sel.name = `rows[${idx}].rumah[${di}]`;
           const p0=document.createElement('option'); p0.value=''; p0.textContent='—'; if(!val) p0.selected = true; sel.appendChild(p0);
           rumah.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; if(val===k) o.selected=true; sel.appendChild(o); });
           if(val){ tdR.classList.add('filled'); }
@@ -1206,10 +1206,10 @@ const upahPokok = hari * rate;
         const tdH=document.createElement('td'); tdH.className='right'; tdH.textContent=fmtHari(hari); tr.appendChild(tdH);
         const tdU=document.createElement('td'); tdU.className='right'; tdU.textContent=rp(upahPokok); tr.appendChild(tdU);
         const tdB=document.createElement('td'); tdB.className='right'; tdB.textContent=rp(uangBeras); tr.appendChild(tdB);
-        const tdBonus=document.createElement('td'); tdBonus.className='right col-bonus'; tdBonus.innerHTML = `<input class='input right' type='number' inputmode='numeric' placeholder='0' value="${(r.bonus??'')}" oninput="this.value=this.value.replace(/[^\\d]/g,''); rows[${idx}].bonus=this.value; save('rows',rows);" onblur="rerender();" />`; tr.appendChild(tdBonus);
+        const tdBonus=document.createElement('td'); tdBonus.className='right col-bonus'; tdBonus.innerHTML = `<input class='input right' name="rows[${idx}].bonus" type='number' inputmode='numeric' placeholder='0' value="${(r.bonus??'')}" oninput="this.value=this.value.replace(/[^\\d]/g,''); rows[${idx}].bonus=this.value; save('rows',rows);" onblur="rerender();" />`; tr.appendChild(tdBonus);
         const tdTB=document.createElement('td'); tdTB.className='right col-total-bayar'; tdTB.textContent=rp(totalBayar); tr.appendChild(tdTB);
 
-        const tdKet=document.createElement('td'); tdKet.className='hide-sm col-ket'; tdKet.innerHTML = `<input class='input' placeholder='Keterangan…' value="${r.ket||''}" oninput="rows[${idx}].ket=this.value; save('rows',rows);" />`; tr.appendChild(tdKet);
+        const tdKet=document.createElement('td'); tdKet.className='hide-sm col-ket'; tdKet.innerHTML = `<input class='input' name="rows[${idx}].ket" placeholder='Keterangan…' value="${r.ket||''}" oninput="rows[${idx}].ket=this.value; save('rows',rows);" />`; tr.appendChild(tdKet);
 
         const tdA=document.createElement('td'); tdA.className='center'; tdA.innerHTML=`<button type='button' class='btn small icon-only danger' onclick='removeWorker(${idx})' aria-label='Hapus pekerja' title='Hapus pekerja'><svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M9 3h6l1 2h5v2h-1l-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 7H3V5h5l1-2Zm8 4H7l1 13h10l1-13Zm-8 3h2v8h-2Zm4 0h2v8h-2Z' fill='currentColor'/></svg><span class='sr-only'>Hapus</span></button>`; tr.appendChild(tdA);
 
@@ -1287,7 +1287,7 @@ const upahPokok = hari * rate;
           return `
               <div class="${itemClass}">
                 <label class="muted">${d}</label>
-                <select class="input day-select" onchange="rows[${idx}].rumah[${di}]=this.value; rerender();">
+                <select class="input day-select" name="rows[${idx}].rumah[${di}]" onchange="rows[${idx}].rumah[${di}]=this.value; rerender();">
                   <option value=""${val ? '' : ' selected'}>—</option>
                   ${options}
                 </select>
@@ -1298,7 +1298,7 @@ const upahPokok = hari * rate;
         card.className='worker-card';
         card.innerHTML = `
           <div class="card-header">
-            <input class="input" value="${r.nama||''}" placeholder="Nama pekerja" oninput="rows[${idx}].nama=this.value; save('rows',rows);" style="max-width:52%;">
+            <input class="input" name="rows[${idx}].nama" value="${r.nama||''}" placeholder="Nama pekerja" oninput="rows[${idx}].nama=this.value; save('rows',rows);" style="max-width:52%;">
             <button type="button" class="btn small icon-only danger" onclick="removeWorker(${idx})" aria-label="Hapus pekerja" title="Hapus pekerja">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6l1 2h5v2h-1l-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 7H3V5h5l1-2Zm8 4H7l1 13h10l1-13Zm-8 3h2v8h-2Zm4 0h2v8h-2Z" fill="currentColor"/></svg>
               <span class="sr-only">Hapus</span>
@@ -1307,13 +1307,13 @@ const upahPokok = hari * rate;
           <div class="kv" style="margin:8px 0;">
             <div style="min-width:130px; flex:1;">
               <label class="muted">Kelas</label>
-              <select class="input" onchange="rows[${idx}].kelas=this.value; rerender();">
+              <select class="input" name="rows[${idx}].kelas" onchange="rows[${idx}].kelas=this.value; rerender();">
                 ${['Senior','Tukang','Kenek'].map(k=>`<option ${((r.kelas||'Tukang')===k)?'selected':''}>${k}</option>`).join('')}
               </select>
             </div>
             <div style="min-width:130px; flex:1;">
               <label class="muted">Group</label>
-              <select class="input" onchange="rows[${idx}].group=this.value; save('rows',rows); rerender();">
+              <select class="input" name="rows[${idx}].group" onchange="rows[${idx}].group=this.value; save('rows',rows); rerender();">
                 <option value="">—</option>
                 ${groupList.map(g=>`<option value="${g}" ${(r.group||'')===g?'selected':''}>${g}</option>`).join('')}
               </select>
@@ -2467,6 +2467,193 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   }
 
+  const NON_DIGIT_REGEX = /[^0-9,.-]/g;
+
+  function sanitizeText(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+  }
+
+  function sanitizeDate(value) {
+    const text = sanitizeText(value);
+    if (!text) return '';
+    return text.slice(0, 10);
+  }
+
+  function sanitizeNumber(value, { allowNull = false, defaultValue = 0 } = {}) {
+    if (value === null || value === undefined) {
+      return allowNull ? null : defaultValue;
+    }
+    if (typeof value === 'number') {
+      if (Number.isFinite(value)) {
+        return value;
+      }
+      return allowNull ? null : defaultValue;
+    }
+    const text = sanitizeText(value);
+    if (!text) {
+      return allowNull ? null : defaultValue;
+    }
+    const sign = text.trim().startsWith('-') ? -1 : 1;
+    let cleaned = text.replace(NON_DIGIT_REGEX, '').replace(/-/g, '');
+    if (!cleaned) {
+      return allowNull ? null : defaultValue;
+    }
+
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+      cleaned = cleaned.replace(/\./g, '').replace(/,/g, '.');
+    } else if (cleaned.includes(',')) {
+      const lastComma = cleaned.lastIndexOf(',');
+      const fractionLength = cleaned.length - lastComma - 1;
+      if (fractionLength > 0 && fractionLength <= 2) {
+        cleaned = cleaned.replace(/\./g, '').replace(/,/g, '.');
+      } else {
+        cleaned = cleaned.replace(/,/g, '');
+      }
+    } else if (cleaned.includes('.')) {
+      const lastDot = cleaned.lastIndexOf('.');
+      const fractionLength = cleaned.length - lastDot - 1;
+      if (!(fractionLength > 0 && fractionLength <= 2)) {
+        cleaned = cleaned.replace(/\./g, '');
+      }
+    }
+
+    cleaned = cleaned.replace(/,/g, '');
+    const parsed = Number(cleaned);
+    if (Number.isFinite(parsed)) {
+      return parsed * sign;
+    }
+    return allowNull ? null : defaultValue;
+  }
+
+  function sanitizeClassRates(rates = {}) {
+    const safe = {};
+    Object.entries(rates || {}).forEach(([key, value]) => {
+      const cleanKey = sanitizeText(key) || key;
+      safe[cleanKey] = sanitizeNumber(value, { allowNull: false, defaultValue: 0 });
+    });
+    return safe;
+  }
+
+  function sanitizeRowsForSnapshot(rows = []) {
+    const normalised = normaliseRows(Array.isArray(rows) ? rows : []);
+    return normalised.map((row) => {
+      const rumahSlots = Array.isArray(row?.rumah)
+        ? row.rumah.map((slot) => sanitizeText(slot))
+        : Array(7).fill('');
+      return {
+        nama: sanitizeText(row?.nama),
+        kelas: sanitizeText(row?.kelas) || 'Tukang',
+        group: sanitizeText(row?.group),
+        rumah: rumahSlots,
+        bonus: sanitizeNumber(row?.bonus, { allowNull: true }),
+        ket: sanitizeText(row?.ket)
+      };
+    });
+  }
+
+  function captureSearchValue() {
+    const input = document.getElementById('searchName');
+    if (!input) return '';
+    return sanitizeText(input.value);
+  }
+
+  function determineHideClassGroup() {
+    const checkbox = document.getElementById('toggleHideCG');
+    if (checkbox) {
+      return !!checkbox.checked;
+    }
+    return document.body.classList.contains('hide-cg');
+  }
+
+  function determineViewMode() {
+    if (typeof window.viewMode === 'string' && window.viewMode.length) {
+      return window.viewMode;
+    }
+    const tableWrap = document.getElementById('tableWrap');
+    if (tableWrap && tableWrap.style.display === 'none') {
+      return 'cards';
+    }
+    return 'table';
+  }
+
+  function buildSnapshotValue() {
+    const { rows, classRates, rumah, allowance } = readWorkingState();
+    const period = resolvePeriodMetadata();
+    const start = sanitizeDate(period?.start);
+    const end = sanitizeDate(period?.end);
+    const rumahList = Array.isArray(rumah)
+      ? rumah.map((item) => sanitizeText(item)).filter((item) => item.length)
+      : [];
+    const snapshotRows = sanitizeRowsForSnapshot(rows);
+    const rumahLabel = deriveRumahLabel(rumahList, snapshotRows);
+    const rates = sanitizeClassRates(classRates);
+    const allowanceThreshold = sanitizeNumber(
+      allowance?.threshold ?? allowance?.thr ?? window.allowanceThreshold,
+      { allowNull: false, defaultValue: 0 }
+    );
+    const allowanceAmount = sanitizeNumber(
+      allowance?.amount ?? allowance?.amt ?? window.allowanceAmount,
+      { allowNull: false, defaultValue: 0 }
+    );
+    const summary = summarizeRows(snapshotRows, {
+      classRates: rates,
+      allowanceThreshold,
+      allowanceAmount
+    });
+    const updatedAt = new Date().toISOString();
+    const searchValue = captureSearchValue();
+    const hideClassGroup = determineHideClassGroup();
+    const currentViewMode = determineViewMode();
+    const periodeLabel = start && end ? `${start} s/d ${end}` : (start || end || '');
+    const judul = [sanitizeText(rumahLabel), sanitizeText(periodeLabel)]
+      .filter((item) => item.length)
+      .join(' • ') || 'Snapshot';
+
+    return {
+      version: 1,
+      start,
+      end,
+      periodStart: start,
+      periodEnd: end,
+      rumah: rumahLabel,
+      rumahList,
+      classRates: rates,
+      allowance: { threshold: allowanceThreshold, amount: allowanceAmount },
+      allowanceThreshold,
+      allowanceAmount,
+      rows: snapshotRows,
+      summary,
+      searchName: searchValue,
+      searchQuery: searchValue,
+      hideClassGroup,
+      viewMode: currentViewMode,
+      updatedAt,
+      judul
+    };
+  }
+
+  function buildSnapshotMeta(value = {}) {
+    const start = sanitizeDate(value.start || value.periodStart);
+    const end = sanitizeDate(value.end || value.periodEnd);
+    const lokasi = sanitizeText(value.rumah || value.lokasi);
+    const periodeLabel = start && end ? `${start} s/d ${end}` : (start || end || '');
+    const judul = sanitizeText(value.judul) || [lokasi, periodeLabel].filter((item) => item).join(' • ') || 'Snapshot';
+    const updatedAt = sanitizeText(value.updatedAt) || new Date().toISOString();
+    return {
+      periodStart: start || null,
+      periodEnd: end || null,
+      lokasi: lokasi || null,
+      judul,
+      updatedAt
+    };
+  }
+
+  window.upahSnapshot = Object.assign(window.upahSnapshot || {}, {
+    buildValue: buildSnapshotValue,
+    buildMeta: buildSnapshotMeta
+  });
+
   function updateUrlWithKey(key) {
     const next = new URL(window.location.href);
     if (isNew) {
@@ -2487,55 +2674,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.busy) return;
     loading(true);
     try {
-      const { rows, classRates, rumah, allowance } = readWorkingState();
-      const period = resolvePeriodMetadata();
-      const rumahLabel = deriveRumahLabel(rumah, rows);
-      const allowanceThreshold = Number(allowance?.threshold ?? window.localStorage.getItem(STORAGE_KEYS.allowanceThreshold) ?? 0) || 0;
-      const allowanceAmount = Number(allowance?.amount ?? window.localStorage.getItem(STORAGE_KEYS.allowanceAmount) ?? 0) || 0;
-      const summary = summarizeRows(rows, { classRates, allowanceThreshold, allowanceAmount });
-      const nowISO = new Date().toISOString();
-
-      const payload = {
-        version: 1,
-        start: period.start || '',
-        end: period.end || '',
-        rumah: rumahLabel || '',
-        rumahList: Array.isArray(rumah) ? [...rumah] : [],
-        classRates,
-        allowance: { threshold: allowanceThreshold, amount: allowanceAmount },
-        rows,
-        summary,
-        updatedAt: nowISO
-      };
-
-      const periodeLabel = payload.start && payload.end
-        ? `${payload.start} s/d ${payload.end}`
-        : (payload.start || payload.end || '');
-      const judul = [payload.rumah || '', periodeLabel].filter(Boolean).join(' • ') || 'Snapshot';
-
-      const meta = {
-        periodStart: payload.start || null,
-        periodEnd: payload.end || null,
-        lokasi: payload.rumah || null,
-        judul,
-        total: summary.total,
-        totalDays: summary.totalDays,
-        updatedAt: nowISO,
-        start: payload.start || null,
-        end: payload.end || null,
-        rumah: payload.rumah || null
-      };
+      const value = buildSnapshotValue();
+      const meta = buildSnapshotMeta(value);
 
       let key = '';
       if (isNew) {
         if (window.UpahAPI && typeof window.UpahAPI.makeSnapKey === 'function') {
           key = window.UpahAPI.makeSnapKey({
-            periodeStart: payload.start || '',
-            periodeEnd: payload.end || '',
-            rumah: payload.rumah || ''
+            periodeStart: value.start || '',
+            periodeEnd: value.end || '',
+            rumah: value.rumah || ''
           });
         } else {
-          key = buildSnapshotKey({ start: payload.start, end: payload.end, rumah: payload.rumah });
+          key = buildSnapshotKey({ start: value.start, end: value.end, rumah: value.rumah });
         }
       } else {
         key = state.currentKey || '';
@@ -2544,7 +2695,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      await api.saveSnapshot(key, payload, meta);
+      await api.saveSnapshot(key, value, meta);
       state.currentKey = key;
       state.lastMeta = meta;
       window.localStorage.setItem(STORAGE_KEYS.lastKey, key);
@@ -2802,6 +2953,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let inflight = false;
 
   function readForm() {
+    try {
+      if (window.upahSnapshot && typeof window.upahSnapshot.buildValue === 'function') {
+        const value = window.upahSnapshot.buildValue();
+        const meta = typeof window.upahSnapshot.buildMeta === 'function'
+          ? window.upahSnapshot.buildMeta(value)
+          : {};
+        return { value, meta };
+      }
+    } catch (err) {
+      console.warn('readForm fallback', err);
+    }
+
     const data = {};
     document.querySelectorAll('input, select, textarea').forEach((el) => {
       if (!el.name) return;
@@ -2821,6 +2984,88 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyForm(data = {}) {
+    const snapshotValue = data && typeof data === 'object'
+      ? (data.value && typeof data.value === 'object' ? data.value : data)
+      : null;
+
+    if (snapshotValue && (snapshotValue.rows || snapshotValue.classRates || snapshotValue.allowance || snapshotValue.start || snapshotValue.periodStart)) {
+      const bridge = window.upahFormBridge || {};
+      try {
+        if (Array.isArray(snapshotValue.rows) && typeof bridge.setRows === 'function') {
+          bridge.setRows(snapshotValue.rows);
+        }
+        if (snapshotValue.classRates && typeof bridge.setClassRates === 'function') {
+          bridge.setClassRates(snapshotValue.classRates);
+        }
+        if (Array.isArray(snapshotValue.rumahList) && typeof bridge.setRumah === 'function') {
+          bridge.setRumah(snapshotValue.rumahList);
+        }
+        const allowance = snapshotValue.allowance || {
+          threshold: snapshotValue.allowanceThreshold,
+          amount: snapshotValue.allowanceAmount
+        };
+        if (allowance && typeof bridge.setAllowance === 'function') {
+          bridge.setAllowance({
+            threshold: Number(allowance.threshold ?? allowance.thr ?? 0) || 0,
+            amount: Number(allowance.amount ?? allowance.amt ?? 0) || 0
+          });
+        }
+        if (typeof bridge.setPeriod === 'function') {
+          bridge.setPeriod({
+            start: snapshotValue.start || snapshotValue.periodStart || '',
+            end: snapshotValue.end || snapshotValue.periodEnd || ''
+          });
+        } else {
+          const startEl = document.getElementById('periodStart');
+          const endEl = document.getElementById('periodEnd');
+          if (startEl) {
+            startEl.value = snapshotValue.start || snapshotValue.periodStart || '';
+          }
+          if (endEl) {
+            endEl.value = snapshotValue.end || snapshotValue.periodEnd || '';
+          }
+        }
+      } catch (err) {
+        console.warn('applyForm snapshot bridge error', err);
+      }
+
+      try {
+        const searchInput = document.getElementById('searchName');
+        if (searchInput && Object.prototype.hasOwnProperty.call(snapshotValue, 'searchName')) {
+          const searchValue = snapshotValue.searchName || '';
+          searchInput.value = searchValue;
+          try {
+            window.localStorage.setItem('upah20_search', String(searchValue).toLowerCase().trim());
+          } catch (_) {}
+          if (typeof window.searchName !== 'undefined') {
+            window.searchName = String(searchValue).toLowerCase().trim();
+          }
+        }
+      } catch (err) {
+        console.warn('applyForm search restore error', err);
+      }
+
+      if (typeof snapshotValue.hideClassGroup === 'boolean') {
+        const cb = document.getElementById('toggleHideCG');
+        if (cb) {
+          cb.checked = snapshotValue.hideClassGroup;
+          cb.dispatchEvent(new Event('change'));
+        } else {
+          document.body.classList.toggle('hide-cg', snapshotValue.hideClassGroup);
+        }
+      }
+
+      if (typeof snapshotValue.viewMode === 'string' && typeof window.setView === 'function') {
+        try {
+          window.setView(snapshotValue.viewMode);
+        } catch (err) {
+          console.warn('applyForm setView error', err);
+        }
+      }
+
+      return;
+    }
+
     Object.entries(data).forEach(([name, value]) => {
       const el = document.querySelector(`[name="${escapeCSS(name)}"]`);
       if (!el) return;
