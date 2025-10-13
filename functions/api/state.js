@@ -1,15 +1,20 @@
 import { getKVBinding } from './_kv';
 
+const JSON_HEADERS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
+
+const MAX_VALUE_BYTES = 200 * 1024; // ~200KB default guard
+const MAX_META_BYTES = 1024; // Cloudflare KV metadata limit
+const encoder = new TextEncoder();
+
 function json(data, { status = 200, headers = {} } = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      ...headers
-    }
+    headers: { ...JSON_HEADERS, ...headers }
   });
 }
 
@@ -33,32 +38,38 @@ export async function onRequest(context) {
       if (!keyParam) {
         return json({ ok: false, error: 'key required' }, { status: 400 });
       }
+
       const result = await kv.getWithMetadata(keyParam, { type: 'json' });
-      const value = result?.value ?? null;
-      const meta = result?.metadata ?? null;
-      return json({ ok: true, key: keyParam, value, meta });
+      if (!result) {
+        return json({ ok: false, error: 'Not found' }, { status: 404 });
+      }
+
+      const meta = normaliseMeta(result?.metadata);
+      return json({ ok: true, key: keyParam, value: result?.value ?? null, meta });
     }
 
     if (method === 'POST') {
-      let payload;
-      try {
-        payload = await request.json();
-      } catch (err) {
-        payload = {};
-      }
-
+      const payload = await safeJson(request);
       const key = payload?.key || keyParam;
       if (!key) {
         return json({ ok: false, error: 'key required' }, { status: 400 });
       }
 
       const value = payload?.value ?? null;
-      const meta = payload && typeof payload.meta === 'object' && payload.meta !== null
-        ? payload.meta
-        : null;
+      const meta = withMeta(payload?.meta);
 
-      const options = meta ? { metadata: meta } : undefined;
-      await kv.put(key, JSON.stringify(value), options);
+      const encodedValue = JSON.stringify(value);
+      const valueSize = encoder.encode(encodedValue).byteLength;
+      if (valueSize > MAX_VALUE_BYTES) {
+        return json({ ok: false, error: 'Value too large' }, { status: 413 });
+      }
+
+      const metaSize = encoder.encode(JSON.stringify(meta)).byteLength;
+      if (metaSize > MAX_META_BYTES) {
+        return json({ ok: false, error: 'Meta too large' }, { status: 413 });
+      }
+
+      await kv.put(key, encodedValue, { metadata: meta });
 
       return json({ ok: true, key, meta });
     }
@@ -76,4 +87,27 @@ export async function onRequest(context) {
     console.error('api/state error', err);
     return json({ ok: false, error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+async function safeJson(request) {
+  try {
+    return await request.json();
+  } catch (err) {
+    return {};
+  }
+}
+
+function withMeta(meta) {
+  const base = normaliseMeta(meta);
+  if (!base.updatedAt) {
+    base.updatedAt = new Date().toISOString();
+  }
+  return base;
+}
+
+function normaliseMeta(meta) {
+  if (!meta || typeof meta !== 'object') {
+    return {};
+  }
+  return { ...meta };
 }
