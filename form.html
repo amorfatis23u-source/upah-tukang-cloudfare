@@ -197,6 +197,24 @@
     .btn.small { padding: 0.45rem 0.85rem; font-size: 0.8rem; }
     .btn.ghost { border-style: dashed; background: transparent; }
     .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .btn[data-loading="1"] {
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+    .btn[data-loading="1"]::after {
+      content: '';
+      display: inline-block;
+      width: 0.85rem;
+      height: 0.85rem;
+      margin-left: 0.35rem;
+      border-radius: 999px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      animation: btnSpin 0.8s linear infinite;
+    }
+    @keyframes btnSpin {
+      to { transform: rotate(360deg); }
+    }
     .btn.icon-only {
       padding: 0.45rem;
       width: 2.1rem;
@@ -2306,13 +2324,46 @@ document.addEventListener('DOMContentLoaded', () => {
   import { ensureApiClient, buildSnapshotKey, summarizeRows, showToast, formatError } from './assets/js/upah-core.js';
 
   const api = ensureApiClient();
-  const params = new URLSearchParams(window.location.search);
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
+  const isNew = (params.get('new') ?? 'Y').toUpperCase() !== 'N';
+  const editKey = !isNew ? params.get('key') : null;
   const bridge = window.upahFormBridge || {};
 
   const state = {
-    currentKey: params.get('key') || '',
-    isSaving: false,
-    lastMeta: null
+    currentKey: !isNew ? (editKey || '') : '',
+    lastMeta: null,
+    busy: false
+  };
+
+  let saveBtn = null;
+
+  function setButtonLabel() {
+    if (!saveBtn) return;
+    saveBtn.textContent = isNew ? 'Simpan Baru' : 'Perbarui Snapshot';
+  }
+
+  function updateSaveButtonState() {
+    if (!saveBtn) return;
+    const disabledByKey = !isNew && !state.currentKey;
+    saveBtn.disabled = state.busy || disabledByKey;
+    saveBtn.dataset.loading = state.busy ? '1' : '0';
+  }
+
+  function setBusy(flag) {
+    state.busy = !!flag;
+    if (saveBtn) {
+      if (state.busy) {
+        saveBtn.setAttribute('aria-busy', 'true');
+      } else {
+        saveBtn.removeAttribute('aria-busy');
+      }
+    }
+    updateSaveButtonState();
+  }
+
+  const loading = (on) => {
+    setBusy(!!on);
   };
 
   const STORAGE_KEYS = {
@@ -2392,33 +2443,25 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   }
 
-  function setSaving(flag) {
-    state.isSaving = flag;
-    const btn = document.querySelector('[data-testid="form-save"]');
-    if (btn) {
-      btn.disabled = !!flag;
-      if (flag) {
-        btn.setAttribute('aria-busy', 'true');
+  function updateUrlWithKey(key) {
+    const next = new URL(window.location.href);
+    if (isNew) {
+      next.searchParams.delete('key');
+      next.searchParams.delete('new');
+    } else {
+      next.searchParams.set('new', 'N');
+      if (key) {
+        next.searchParams.set('key', key);
       } else {
-        btn.removeAttribute('aria-busy');
+        next.searchParams.delete('key');
       }
     }
-  }
-
-  function updateUrlWithKey(key) {
-    const url = new URL(window.location.href);
-    if (key) {
-      url.searchParams.set('key', key);
-      url.searchParams.delete('new');
-    } else {
-      url.searchParams.delete('key');
-    }
-    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    window.history.replaceState({}, document.title, `${next.pathname}${next.search}${next.hash}`);
   }
 
   async function persistSnapshot() {
-    if (state.isSaving) return;
-    setSaving(true);
+    if (state.busy) return;
+    loading(true);
     try {
       const { rows, classRates, rumah, allowance } = readWorkingState();
       const period = resolvePeriodMetadata();
@@ -2459,18 +2502,21 @@ document.addEventListener('DOMContentLoaded', () => {
         rumah: payload.rumah || null
       };
 
-      let key = state.currentKey;
-      if (!key) {
-        const uuidHint = params.get('new') || undefined;
+      let key = '';
+      if (isNew) {
         if (window.UpahAPI && typeof window.UpahAPI.makeSnapKey === 'function') {
           key = window.UpahAPI.makeSnapKey({
             periodeStart: payload.start || '',
             periodeEnd: payload.end || '',
-            rumah: payload.rumah || '',
-            uuid: uuidHint
+            rumah: payload.rumah || ''
           });
         } else {
-          key = buildSnapshotKey({ start: payload.start, end: payload.end, rumah: payload.rumah, uuid: uuidHint });
+          key = buildSnapshotKey({ start: payload.start, end: payload.end, rumah: payload.rumah });
+        }
+      } else {
+        key = state.currentKey || '';
+        if (!key) {
+          throw new Error('Mode edit membutuhkan ?key=... yang valid.');
         }
       }
 
@@ -2480,7 +2526,16 @@ document.addEventListener('DOMContentLoaded', () => {
       window.localStorage.setItem(STORAGE_KEYS.lastKey, key);
       updateUrlWithKey(key);
       if (typeof showToast === 'function') {
-        showToast('Snapshot tersimpan ke Cloudflare KV', 'success');
+        showToast(isNew ? 'Snapshot baru tersimpan.' : 'Snapshot diperbarui.', 'success');
+      }
+      try {
+        if (typeof window.refreshSnapshotList === 'function') {
+          await window.refreshSnapshotList();
+        } else if (typeof api.refreshSnapshotList === 'function') {
+          await api.refreshSnapshotList('ut:snap:');
+        }
+      } catch (err) {
+        console.warn('refreshSnapshotList gagal', err);
       }
       return key;
     } catch (err) {
@@ -2492,16 +2547,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       throw err;
     } finally {
-      setSaving(false);
+      loading(false);
     }
   }
 
   async function restoreSnapshot(key) {
     if (!key) return;
-    setSaving(true);
+    loading(true);
     try {
       const res = await api.loadSnapshot(key);
-      const value = res?.value || {};
+      if (res && res.ok === false) {
+        throw new Error(res.error || 'Snapshot tidak ditemukan.');
+      }
+      const value = res?.value;
+      if (!value || typeof value !== 'object') {
+        throw new Error('Snapshot tidak ditemukan.');
+      }
       const rows = value.rows || value.data?.rows || [];
       const classRates = value.classRates || value.rates || {};
       const rumahList = value.rumahList || value.rumah || [];
@@ -2523,18 +2584,24 @@ document.addEventListener('DOMContentLoaded', () => {
       state.currentKey = key;
       window.localStorage.setItem(STORAGE_KEYS.lastKey, key);
       updateUrlWithKey(key);
+      updateSaveButtonState();
       if (typeof showToast === 'function') {
         showToast('Snapshot dimuat dari Cloudflare KV', 'success');
       }
     } catch (err) {
       console.error('restoreSnapshot gagal', err);
       if (typeof showToast === 'function') {
-        showToast(formatError(err), 'error');
+        showToast(err?.message || formatError(err), 'error');
       } else {
-        alert(formatError(err));
+        alert(err?.message || formatError(err));
       }
+      state.currentKey = '';
+      if (!isNew) {
+        renderMissingKeyMessage();
+      }
+      updateSaveButtonState();
     } finally {
-      setSaving(false);
+      loading(false);
     }
   }
 
@@ -2552,6 +2619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.warn('prepareNewForm warning', err);
     }
+    updateSaveButtonState();
   }
 
   const originalSaveAll = window.saveAll;
@@ -2572,24 +2640,73 @@ document.addEventListener('DOMContentLoaded', () => {
     return undefined;
   };
 
-  function init() {
-    const saveBtn = document.querySelector('[data-testid="form-save"]');
-    if (saveBtn) {
-      saveBtn.type = 'button';
-    }
+  function renderMissingKeyMessage() {
+    const container = document.querySelector('#mainActionsFixed');
+    if (!container || container.querySelector('[data-mode-warning]')) return;
+    const note = document.createElement('p');
+    note.dataset.modeWarning = '1';
+    note.className = 'muted';
+    note.style.margin = '0';
+    note.style.padding = '0.75rem 0';
+    note.textContent = 'Mode edit membutuhkan snapshot yang dipilih terlebih dahulu. Silakan kembali ke daftar snapshot dan pilih salah satu.';
+    container.prepend(note);
+  }
 
-    if (params.has('new')) {
-      prepareNewForm();
-    } else if (!state.currentKey) {
-      const lastKey = window.localStorage.getItem(STORAGE_KEYS.lastKey);
-      if (lastKey) {
-        state.currentKey = lastKey;
+  function renderModeBadge() {
+    const title = document.getElementById('appTitle');
+    const host = title?.parentElement || document.querySelector('.header-inner');
+    if (!host) return;
+    let badge = host.querySelector('[data-mode-badge]');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.dataset.modeBadge = '1';
+      badge.style.display = 'inline-flex';
+      badge.style.alignItems = 'center';
+      badge.style.gap = '0.25rem';
+      badge.style.marginLeft = '0.75rem';
+      badge.style.padding = '0.2rem 0.6rem';
+      badge.style.borderRadius = '999px';
+      badge.style.border = '1px solid var(--line)';
+      badge.style.fontSize = '0.75rem';
+      badge.style.fontWeight = '600';
+      badge.style.color = 'var(--text-muted)';
+      if (title) {
+        title.insertAdjacentElement('afterend', badge);
+      } else {
+        host.appendChild(badge);
       }
     }
+    badge.textContent = isNew ? 'Mode: Baru' : 'Mode: Edit';
+  }
 
-    if (state.currentKey) {
-      restoreSnapshot(state.currentKey);
+  function init() {
+    saveBtn = document.querySelector('[data-testid="form-save"]');
+    if (saveBtn) {
+      saveBtn.type = 'button';
+      setButtonLabel();
+      updateSaveButtonState();
     }
+
+    renderModeBadge();
+
+    if (isNew) {
+      prepareNewForm();
+      return;
+    }
+
+    if (!state.currentKey) {
+      const message = 'Mode edit membutuhkan ?key=... yang valid.';
+      if (typeof showToast === 'function') {
+        showToast(message, 'error');
+      } else {
+        alert(message);
+      }
+      renderMissingKeyMessage();
+      updateSaveButtonState();
+      return;
+    }
+
+    restoreSnapshot(state.currentKey);
   }
 
   if (document.readyState === 'loading') {
@@ -2599,8 +2716,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('beforeunload', () => {
-    if (state.isSaving) {
-      setSaving(false);
+    if (state.busy) {
+      setBusy(false);
     }
   });
 
