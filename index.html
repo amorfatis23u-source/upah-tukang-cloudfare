@@ -23,7 +23,7 @@
       </div>
       <nav class="flex items-center gap-2 text-sm">
         <a class="rounded-xl border border-slate-200 px-3 py-2 text-slate-600 hover:border-slate-300" href="rekap.html">Rekap</a>
-        <a class="rounded-xl border border-slate-200 px-3 py-2 text-slate-600 hover:border-slate-300" href="form">Isi Form</a>
+        <a class="rounded-xl border border-slate-200 px-3 py-2 text-slate-600 hover:border-slate-300" href="form" data-form-link="new">Isi Form</a>
         <button id="btnNew" data-testid="dashboard-open-new" class="rounded-xl bg-orange-500 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
       </nav>
     </div>
@@ -36,7 +36,7 @@
         <p class="mt-2 text-sm text-slate-500">Siapkan draft kosong dengan periode 7 hari ke depan. Data tersimpan otomatis di Cloudflare KV.</p>
         <div class="mt-4 flex flex-wrap gap-2">
           <button id="ctaNew" data-testid="dashboard-cta-new" class="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">Form Baru</button>
-          <a href="form" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300">Lanjutkan Draft</a>
+          <a href="form" data-form-link="new" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300">Lanjutkan Draft</a>
         </div>
       </article>
       <article class="rounded-2xl bg-white p-6 shadow-sm">
@@ -101,6 +101,58 @@
     import { utils, showToast, formatError, ensureApiClient } from './assets/js/upah-core.js';
 
     const api = ensureApiClient();
+
+    const currentLocation = new URL(window.location.href);
+    const preservedHash = currentLocation.hash || '';
+
+    function applyOverrides(params, overrides) {
+      if (!overrides) return;
+      let entries;
+      if (overrides instanceof URLSearchParams) {
+        entries = overrides.entries();
+      } else if (Array.isArray(overrides)) {
+        entries = overrides;
+      } else {
+        entries = Object.entries(overrides);
+      }
+      for (const [key, value] of entries) {
+        if (value === null) {
+          params.delete(key);
+          continue;
+        }
+        if (typeof value === 'undefined') continue;
+        params.set(key, String(value));
+      }
+    }
+
+    function buildFormUrl(overrides) {
+      const next = new URL('form', currentLocation);
+      const params = new URLSearchParams(currentLocation.search);
+      applyOverrides(params, overrides);
+      const query = params.toString();
+      next.search = query ? `?${query}` : '';
+      next.hash = preservedHash;
+      return `${next.pathname}${next.search}${next.hash}`;
+    }
+
+    function hydrateStaticFormLinks() {
+      document.querySelectorAll('[data-form-link]').forEach((link) => {
+        const mode = (link.getAttribute('data-form-link') || '').toLowerCase();
+        const overrides = {};
+        if (mode === 'new') {
+          overrides.new = null;
+          overrides.key = null;
+        } else if (mode === 'edit') {
+          overrides.new = 'N';
+        }
+        if (link.dataset.formKey) {
+          overrides.key = link.dataset.formKey;
+        }
+        link.setAttribute('href', buildFormUrl(overrides));
+      });
+    }
+
+    hydrateStaticFormLinks();
 
     const YEAR = new Date().getFullYear();
     document.getElementById('year').textContent = YEAR;
@@ -190,11 +242,15 @@
           <td class="py-3 pr-4 align-top text-slate-600">${updatedLabel}</td>
           <td class="py-3 pl-4 text-right">
             <div class="flex justify-end gap-2">
-              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" href="form?key=${encodeURIComponent(item.key)}">Buka</a>
+              <a class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300" data-form-open="1" href="#">Buka</a>
               <button class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:border-red-300" data-testid="dashboard-delete" data-key="${item.key}">Hapus</button>
             </div>
           </td>
         `;
+        const openAnchor = tr.querySelector('[data-form-open]');
+        if (openAnchor) {
+          openAnchor.setAttribute('href', buildFormUrl({ new: 'N', key: item.key }));
+        }
         tableBody.appendChild(tr);
       });
 
@@ -257,9 +313,8 @@
 
     function openNewForm() {
       const index = nextNewIndex();
-      const url = new URL('form', window.location.href);
-      url.searchParams.set('new', String(index));
-      window.location.href = url.toString();
+      const nextUrl = buildFormUrl({ new: String(index), key: null });
+      window.location.href = nextUrl;
     }
 
     document.getElementById('btnNew').addEventListener('click', openNewForm);
