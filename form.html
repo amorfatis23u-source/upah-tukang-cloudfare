@@ -136,6 +136,70 @@
       gap: 1.5rem;
       padding: 2rem 0 4rem;
     }
+    .card-tablist {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1.5rem 0 0.5rem;
+      padding: 0.5rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.24);
+      background: color-mix(in srgb, var(--surface) 80%, var(--surface-muted) 20%);
+      box-shadow: 0 6px 24px rgba(15,23,42,0.08);
+    }
+    .card-tab {
+      position: relative;
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      background: transparent;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-tab:hover {
+      color: var(--text);
+      border-color: rgba(148,163,184,0.45);
+      background: color-mix(in srgb, var(--surface) 90%, var(--surface-muted) 10%);
+    }
+    .card-tab:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+      outline-offset: 2px;
+    }
+    .card-tab[aria-selected="true"] {
+      color: var(--text);
+      background: var(--surface);
+      border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+      box-shadow: 0 6px 18px rgba(15,23,42,0.12);
+    }
+    .card-tab[aria-selected="true"]::after {
+      content: '';
+      position: absolute;
+      inset: auto 0 -6px 0;
+      height: 3px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 70%, transparent);
+    }
+    @media (max-width: 720px) {
+      .card-tablist {
+        overflow-x: auto;
+        padding: 0.5rem 0.25rem;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+      .card-tablist::-webkit-scrollbar { display: none; }
+      .card-tab {
+        flex: 0 0 auto;
+        border: 1px solid rgba(148,163,184,0.3);
+        background: color-mix(in srgb, var(--surface) 92%, var(--surface-muted) 8%);
+      }
+      .card-tab[aria-selected="true"] {
+        box-shadow: 0 4px 12px rgba(15,23,42,0.1);
+      }
+      .card-tab[aria-selected="true"]::after { display: none; }
+    }
     .card {
       background: var(--surface);
       border-radius: var(--radius-lg);
@@ -668,7 +732,7 @@
   </header>
 
   <main class="shell main-stack">
-    <section class="card stack">
+    <section id="cardMainActions" class="card stack" data-tab-label="Periode &amp; Aksi">
       <div class="section-header">
         <div>
           <h2>Periode &amp; Aksi</h2>
@@ -740,7 +804,7 @@
       </div>
     </section>
 
-    <details id="secOptions" class="card">
+    <details id="secOptions" class="card" data-tab-label="Pengaturan">
       <summary>Pengaturan</summary>
       <div class="options-body stack">
         <details id="secRates" class="subcard">
@@ -808,7 +872,7 @@
       </div>
     </details>
 
-    <div id="tableWrap" class="card table-card">
+    <div id="tableWrap" class="card table-card" data-tab-label="Tabel Pekerja">
       <div class="table-container">
         <table id="tbl">
           <thead>
@@ -851,17 +915,17 @@
       </div>
     </div>
 
-    <div id="cardsWrap" class="card" style="display:none;">
+    <div id="cardsWrap" class="card" data-tab-label="Mode Kartu" hidden>
       <div id="cardsBody" class="stack"></div>
     </div>
 
-    <details class="card" id="rekap3">
+    <details class="card" id="rekap3" data-tab-label="Rekap Total Tarif">
       <summary>Rekap Total Tarif per Rumah</summary>
       <p class="muted">Rangkuman total hari dan upah per rumah.</p>
       <div id="rekap3Body"></div>
     </details>
 
-    <details class="card" id="rekap3day">
+    <details class="card" id="rekap3day" data-tab-label="Rekap Rumah per Hari">
       <summary>Rekap per Rumah per Hari</summary>
       <p class="muted">Distribusi pekerja per hari untuk setiap rumah.</p>
       <div id="rekap3DayBody"></div>
@@ -1614,12 +1678,25 @@ const upahPokok = hari * rate;
 
 
 
-  function setView(m){ viewMode = m; localStorage.setItem('upah20_viewMode', m); rerender(); }
+  function setView(m){
+    if(window.UpahTabs && typeof window.UpahTabs.activatePanel === 'function'){
+      const targetId = m === 'table' ? 'tableWrap' : 'cardsWrap';
+      if(window.UpahTabs.activatePanel(targetId, { source: 'view', forceRender: true })){
+        return;
+      }
+    }
+    viewMode = m;
+    localStorage.setItem('upah20_viewMode', m);
+    rerender();
+  }
   function toggleView(){ return viewMode==='table' ? 'cards' : 'table'; }
 
   function rerender(){
-    document.getElementById('tableWrap').style.display = (viewMode==='table') ? 'block' : 'none';
-    document.getElementById('cardsWrap').style.display = (viewMode==='cards') ? 'block' : 'none';
+    const tabsReady = !!(window.UpahTabs && typeof window.UpahTabs.isReady === 'function' && window.UpahTabs.isReady());
+    if(!tabsReady){
+      document.getElementById('tableWrap').style.display = (viewMode==='table') ? 'block' : 'none';
+      document.getElementById('cardsWrap').style.display = (viewMode==='cards') ? 'block' : 'none';
+    }
     if(viewMode==='table') renderTable(); else renderCards();
     save('rows',rows); save('classRates',classRates);
   }
@@ -1675,9 +1752,193 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }catch(e){ console.error(e); }
 });
+
 </script>
 
+<script>
+(function(){
+  const TAB_STORAGE_KEY = 'upah20_activeTab';
 
+  function setupCardTabs(){
+    const stack = document.querySelector('.main-stack');
+    if(!stack || stack.dataset.tabsReady === 'true') return;
+    const cards = Array.from(stack.querySelectorAll(':scope > .card'));
+    if(!cards.length) return;
+
+    const tabList = document.createElement('div');
+    tabList.className = 'card-tablist';
+    tabList.setAttribute('role', 'tablist');
+    tabList.setAttribute('aria-orientation', 'horizontal');
+
+    const state = {
+      tabs: [],
+      panels: new Map(),
+      active: null,
+      ready: false
+    };
+
+    function resolveLabel(card, index){
+      if(card.dataset.tabLabel) return card.dataset.tabLabel;
+      const labelSource = card.querySelector('[data-tab-title], .section-header h2, summary, h1, h2, h3');
+      return labelSource ? labelSource.textContent.trim() : `Panel ${index + 1}`;
+    }
+
+    function applySelection(tab, selected){
+      const panelId = tab.dataset.panelId;
+      const panel = state.panels.get(panelId);
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      tab.setAttribute('tabindex', selected ? '0' : '-1');
+      if(!panel) return;
+      panel.setAttribute('role', 'tabpanel');
+      panel.setAttribute('aria-labelledby', tab.id);
+      if(selected){
+        panel.hidden = false;
+        panel.removeAttribute('aria-hidden');
+        panel.setAttribute('tabindex', '0');
+      } else {
+        panel.hidden = true;
+        panel.setAttribute('aria-hidden', 'true');
+        panel.setAttribute('tabindex', '-1');
+      }
+    }
+
+    function activatePanel(panelId, opts = {}){
+      if(!panelId) return false;
+      const tab = state.tabs.find((btn) => btn.dataset.panelId === panelId);
+      if(!tab) return false;
+      const alreadyActive = state.active === panelId;
+
+      if(!alreadyActive){
+        state.tabs.forEach((btn) => applySelection(btn, btn === tab));
+        state.active = panelId;
+        if(!opts.skipStore){
+          try{ localStorage.setItem(TAB_STORAGE_KEY, panelId); }catch(err){ console.warn('Gagal menyimpan tab aktif', err); }
+        }
+      }
+
+      if(opts.focus){ tab.focus(); }
+
+      const isViewPanel = panelId === 'tableWrap' || panelId === 'cardsWrap';
+      if(isViewPanel){
+        const desiredView = panelId === 'tableWrap' ? 'table' : 'cards';
+        const viewChanged = viewMode !== desiredView;
+        viewMode = desiredView;
+        try{ localStorage.setItem('upah20_viewMode', viewMode); }catch(err){ console.warn('Gagal menyimpan view mode', err); }
+        if((!alreadyActive && !opts.skipRender) || opts.forceRender || (viewChanged && !opts.skipRender)){
+          rerender();
+        }
+      }
+
+      return true;
+    }
+
+    cards.forEach((card, index) => {
+      const panelId = card.id || `card-panel-${index + 1}`;
+      if(!card.id) card.id = panelId;
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.className = 'card-tab';
+      tab.id = `card-tab-${index + 1}`;
+      tab.dataset.panelId = panelId;
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-controls', panelId);
+      tab.setAttribute('aria-selected', 'false');
+      tab.setAttribute('tabindex', '-1');
+      tab.textContent = resolveLabel(card, index);
+      tabList.appendChild(tab);
+      state.tabs.push(tab);
+      state.panels.set(panelId, card);
+      card.hidden = true;
+      card.setAttribute('role', 'tabpanel');
+      card.setAttribute('aria-labelledby', tab.id);
+      card.setAttribute('tabindex', '-1');
+      card.setAttribute('aria-hidden', 'true');
+    });
+
+    stack.insertBefore(tabList, stack.firstChild);
+
+    tabList.addEventListener('click', (event) => {
+      const tab = event.target.closest('.card-tab');
+      if(!tab) return;
+      event.preventDefault();
+      activatePanel(tab.dataset.panelId, { focus: true });
+    });
+
+    tabList.addEventListener('keydown', (event) => {
+      const tab = event.target.closest('.card-tab');
+      if(!tab) return;
+      const index = state.tabs.indexOf(tab);
+      if(index < 0) return;
+      let nextIndex = null;
+      switch(event.key){
+        case 'ArrowRight':
+        case 'ArrowDown':
+          nextIndex = (index + 1) % state.tabs.length;
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          nextIndex = (index - 1 + state.tabs.length) % state.tabs.length;
+          break;
+        case 'Home':
+          nextIndex = 0;
+          break;
+        case 'End':
+          nextIndex = state.tabs.length - 1;
+          break;
+        case 'Enter':
+        case ' ':
+          event.preventDefault();
+          activatePanel(tab.dataset.panelId, { focus: true, forceRender: true });
+          return;
+        default:
+          return;
+      }
+      if(nextIndex !== null){
+        event.preventDefault();
+        const nextTab = state.tabs[nextIndex];
+        if(nextTab){
+          activatePanel(nextTab.dataset.panelId, { focus: true });
+        }
+      }
+    });
+
+    let initialPanelId = null;
+    try {
+      const stored = localStorage.getItem(TAB_STORAGE_KEY);
+      if(stored && state.panels.has(stored)){
+        initialPanelId = stored;
+      }
+    } catch(err){
+      console.warn('Gagal membaca tab aktif', err);
+    }
+    if(!initialPanelId){
+      initialPanelId = state.tabs[0]?.dataset.panelId || null;
+    }
+    if(initialPanelId){
+      const initialOpts = { skipStore: true };
+      if(initialPanelId !== 'tableWrap' && initialPanelId !== 'cardsWrap'){
+        initialOpts.skipRender = true;
+      }
+      activatePanel(initialPanelId, initialOpts);
+    }
+
+    state.ready = true;
+    stack.dataset.tabsReady = 'true';
+
+    window.UpahTabs = {
+      activatePanel,
+      isReady: () => state.ready,
+      getActivePanel: () => state.active
+    };
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setupCardTabs);
+  } else {
+    setupCardTabs();
+  }
+})();
+</script>
 
 <!-- === Hide Kelas & Group: JS === -->
 <script>
