@@ -1,7 +1,78 @@
 const RETRY_DELAYS = [0, 600, 1400];
 const SNAP_PREFIX = 'ut:snap:';
 
-async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DELAYS } = {}) {
+const isPromiseLike = (value) => value && typeof value.then === 'function';
+
+function normaliseBase(base = '/api') {
+  if (!base) return '';
+  if (/^https?:/i.test(base)) return base.replace(/\/$/, '');
+  return base.endsWith('/') ? base.slice(0, -1) : base;
+}
+
+function readMetaContent(name) {
+  if (typeof document === 'undefined') return '';
+  const el = document.querySelector(`meta[name="${name}"]`);
+  if (!el) return '';
+  return (el.getAttribute('content') || '').trim();
+}
+
+function resolveGlobalOptions(baseOrOptions) {
+  const options = {};
+
+  if (typeof window !== 'undefined') {
+    const globalConfig = window.__UPAH_CONFIG__ || window.UpahConfig || {};
+    Object.assign(options, globalConfig);
+
+    if (!options.appsScriptUrl && typeof window.UPAH_APPS_SCRIPT_URL === 'string') {
+      options.appsScriptUrl = window.UPAH_APPS_SCRIPT_URL;
+    }
+    if (!options.baseUrl && typeof window.UPAH_API_BASE_URL === 'string') {
+      options.baseUrl = window.UPAH_API_BASE_URL;
+    }
+  }
+
+  const metaScript = readMetaContent('upah-apps-script-url');
+  if (!options.appsScriptUrl && metaScript) {
+    options.appsScriptUrl = metaScript;
+  }
+
+  const metaBase = readMetaContent('upah-api-base-url');
+  if (!options.baseUrl && metaBase) {
+    options.baseUrl = metaBase;
+  }
+
+  if (typeof baseOrOptions === 'string') {
+    options.baseUrl = baseOrOptions;
+  } else if (baseOrOptions && typeof baseOrOptions === 'object') {
+    Object.assign(options, baseOrOptions);
+  }
+
+  if (options.appsScriptUrl) {
+    options.appsScriptUrl = String(options.appsScriptUrl).trim();
+    if (!options.appsScriptUrl) {
+      delete options.appsScriptUrl;
+    }
+  }
+
+  if (options.baseUrl) {
+    options.baseUrl = String(options.baseUrl).trim();
+    if (!options.baseUrl) {
+      delete options.baseUrl;
+    }
+  }
+
+  return options;
+}
+
+async function jsonRequest(path, {
+  method = 'GET',
+  body,
+  retryDelays = RETRY_DELAYS,
+  headers: extraHeaders,
+  contentType,
+  credentials = 'same-origin',
+  allowOkFalse = false
+} = {}) {
   let lastErr = null;
   for (let attempt = 0; attempt < retryDelays.length; attempt++) {
     const wait = retryDelays[attempt];
@@ -9,10 +80,17 @@ async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DEL
       await new Promise((resolve) => setTimeout(resolve, wait));
     }
     try {
-      const opts = { method, headers: { 'Accept': 'application/json' }, credentials: 'same-origin' };
+      const opts = { method, headers: { Accept: 'application/json', ...(extraHeaders || {}) }, credentials };
       if (body !== undefined) {
-        opts.body = JSON.stringify(body);
-        opts.headers['Content-Type'] = 'application/json; charset=utf-8';
+        const isString = typeof body === 'string';
+        opts.body = isString ? body : JSON.stringify(body);
+        let finalType = contentType;
+        if (typeof finalType === 'undefined') {
+          finalType = isString ? 'text/plain;charset=utf-8' : 'application/json; charset=utf-8';
+        }
+        if (finalType) {
+          opts.headers['Content-Type'] = finalType;
+        }
       }
       const res = await fetch(path, opts);
       const text = await res.text();
@@ -25,6 +103,9 @@ async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DEL
         throw new Error(msg);
       }
       if (data?.ok === false) {
+        if (allowOkFalse) {
+          return data;
+        }
         const msg = data?.error || 'Request gagal';
         throw new Error(msg);
       }
@@ -39,23 +120,110 @@ async function jsonRequest(path, { method = 'GET', body, retryDelays = RETRY_DEL
   throw lastErr || new Error('Gagal memuat');
 }
 
-function normaliseBase(base = '/api') {
-  if (!base) return '';
-  if (/^https?:/i.test(base)) return base.replace(/\/$/, '');
-  return base.endsWith('/') ? base.slice(0, -1) : base;
-}
-
-const isPromiseLike = (value) => value && typeof value.then === 'function';
-
-export function api(base = '/api') {
-  const normalised = normaliseBase(base);
+function createKvRequest(baseUrl = '/api') {
+  const normalised = normaliseBase(baseUrl || '/api');
   const toUrl = (path = '') => {
     if (/^https?:/i.test(path)) return path;
     if (!normalised) return path || '';
     if (!path) return normalised;
     return `${normalised}${path.startsWith('/') ? '' : '/'}${path}`;
   };
+  return function request(path, options = {}) {
+    return jsonRequest(toUrl(path), options);
+  };
+}
 
+function createAppsScriptRequest(scriptUrl) {
+  const baseUrl = String(scriptUrl || '').trim();
+  if (!baseUrl) {
+    throw new Error('Apps Script URL tidak valid');
+  }
+
+  return function request(path = '', options = {}) {
+    const dummy = new URL(path || '/', 'https://dummy.local');
+    const pathname = dummy.pathname.replace(/^\/+/, '');
+    const params = dummy.searchParams;
+    const url = new URL(baseUrl);
+    const query = url.searchParams;
+
+    const finalOptions = { ...options };
+    let method = (finalOptions.method || 'GET').toUpperCase();
+    let body = finalOptions.body;
+    let action = '';
+
+    const ensureBodyObject = () => {
+      if (body === undefined || body === null) {
+        body = {};
+        return;
+      }
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+        } catch (err) {
+          body = {};
+        }
+        return;
+      }
+      if (typeof body !== 'object') {
+        body = {};
+      }
+    };
+
+    if (pathname === 'state' || pathname === '') {
+      if (method === 'GET') {
+        action = 'get';
+        const key = params.get('key') || (body && body.key);
+        if (key) {
+          query.set('key', key);
+        }
+        body = undefined;
+      } else if (method === 'POST') {
+        action = 'set';
+        ensureBodyObject();
+      } else if (method === 'DELETE') {
+        action = 'delete';
+        const key = params.get('key') || (body && body.key);
+        body = key ? { key } : {};
+        method = 'POST';
+      } else {
+        throw new Error(`Metode ${method} tidak didukung untuk Apps Script state`);
+      }
+    } else if (pathname === 'list') {
+      const wantValues = params.get('values') === '1';
+      action = wantValues ? 'listWithValues' : 'list';
+      if (params.has('prefix')) query.set('prefix', params.get('prefix'));
+      if (params.has('cursor')) query.set('cursor', params.get('cursor'));
+      if (params.has('limit')) query.set('limit', params.get('limit'));
+      body = undefined;
+      method = 'GET';
+    } else {
+      throw new Error(`Path Apps Script tidak dikenal: ${pathname || '/'}`);
+    }
+
+    if (!action) {
+      throw new Error('Aksi Apps Script tidak ditemukan');
+    }
+
+    query.set('action', action);
+
+    const requestInit = {
+      method,
+      retryDelays: finalOptions.retryDelays,
+      headers: finalOptions.headers,
+      credentials: 'omit',
+      allowOkFalse: action === 'get'
+    };
+
+    if (body !== undefined) {
+      requestInit.body = typeof body === 'string' ? body : JSON.stringify(body);
+      requestInit.contentType = finalOptions.contentType || 'text/plain;charset=utf-8';
+    }
+
+    return jsonRequest(url.toString(), requestInit);
+  };
+}
+
+function createClient(request, { snapPrefix = SNAP_PREFIX } = {}) {
   const client = {};
   const snapshotListeners = new Set();
 
@@ -77,7 +245,7 @@ export function api(base = '/api') {
       .map((item) => {
         const key = item?.key || item?.name || '';
         if (!key) return null;
-        const meta = item?.meta && typeof item.meta === 'object' ? item.meta : {};
+        const meta = item?.meta && typeof item.meta === 'object' ? item.meta : (item?.metadata || {});
         return {
           key,
           meta,
@@ -92,24 +260,23 @@ export function api(base = '/api') {
       });
   };
 
-  const fetchSnapshotResponse = async (prefix = SNAP_PREFIX) => {
+  const fetchSnapshotResponse = async (prefix = snapPrefix) => {
     const search = new URLSearchParams();
     if (prefix) search.set('prefix', prefix);
     const query = search.toString();
-    const res = await jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
+    const res = await request(`/list${query ? `?${query}` : ''}`);
     const items = mapSnapshotItems(res?.items);
-    const response = {
+    return {
       prefix: prefix || '',
       cursor: res?.cursor ?? null,
       items,
       keys: items.map((item) => ({ name: item.key, metadata: item.meta, meta: item.meta })),
       count: items.length,
-      list_complete: true
+      list_complete: res?.list_complete ?? true
     };
-    return response;
   };
 
-  const emitSnapshotChange = async (action, { key = null, meta = null, prefix = SNAP_PREFIX } = {}) => {
+  const emitSnapshotChange = async (action, { key = null, meta = null, prefix = snapPrefix } = {}) => {
     const response = await fetchSnapshotResponse(prefix);
     const payload = {
       action,
@@ -128,21 +295,21 @@ export function api(base = '/api') {
 
   client.getRaw = async function getRaw(key) {
     if (!key) throw new Error('key wajib');
-    const res = await jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`));
+    const res = await request(`/state?key=${encodeURIComponent(key)}`, { allowOkFalse: true });
     return res?.value ?? null;
   };
 
   client.setRaw = async function setRaw(key, value) {
     if (!key) throw new Error('key wajib');
-    return jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value } });
+    return request('/state', { method: 'POST', body: { key, value } });
   };
 
   client.del = async function del(key) {
     if (!key) throw new Error('key wajib');
-    return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`), { method: 'DELETE' });
+    return request(`/state?key=${encodeURIComponent(key)}`, { method: 'DELETE' });
   };
 
-  client.listSnapshots = async function listSnapshots(prefix = SNAP_PREFIX, arg1 = {}, arg2 = {}) {
+  client.listSnapshots = async function listSnapshots(prefix = snapPrefix, arg1 = {}, arg2 = {}) {
     let cursor = '';
     let limit = 100;
     let values = false;
@@ -186,6 +353,8 @@ export function api(base = '/api') {
         })
       );
       payload.items = detailed;
+    } else {
+      payload.items = pageItems;
     }
 
     return payload;
@@ -205,14 +374,14 @@ export function api(base = '/api') {
 
   client.get = async function get(key) {
     if (!key) throw new Error('key wajib');
-    return jsonRequest(toUrl(`/state?key=${encodeURIComponent(key)}`));
+    return request(`/state?key=${encodeURIComponent(key)}`, { allowOkFalse: true });
   };
 
   client.set = async function set(key, value, meta = {}) {
     if (!key) throw new Error('key wajib');
-    const res = await jsonRequest(toUrl('/state'), { method: 'POST', body: { key, value, meta } });
+    const res = await request('/state', { method: 'POST', body: { key, value, meta } });
     if (key.startsWith(SNAP_PREFIX)) {
-      await emitSnapshotChange('save', { key, meta: res?.meta ?? meta, prefix: SNAP_PREFIX });
+      await emitSnapshotChange('save', { key, meta: res?.meta ?? meta, prefix: snapPrefix });
     }
     return res;
   };
@@ -228,10 +397,10 @@ export function api(base = '/api') {
     if (limit) search.set('limit', String(limit));
     if (options?.values) search.set('values', '1');
     const query = search.toString();
-    return jsonRequest(toUrl(`/list${query ? `?${query}` : ''}`));
+    return request(`/list${query ? `?${query}` : ''}`);
   };
 
-  client.refreshSnapshotList = async function refreshSnapshotList(prefix = SNAP_PREFIX) {
+  client.refreshSnapshotList = async function refreshSnapshotList(prefix = snapPrefix) {
     const payload = await emitSnapshotChange('refresh', { key: null, meta: null, prefix });
     return payload.response;
   };
@@ -251,12 +420,28 @@ export function api(base = '/api') {
     if (!key) throw new Error('key wajib');
     const res = await originalDel(key);
     if (key.startsWith(SNAP_PREFIX)) {
-      await emitSnapshotChange('delete', { key, meta: null, prefix: SNAP_PREFIX });
+      await emitSnapshotChange('delete', { key, meta: null, prefix: snapPrefix });
     }
     return res;
   };
 
   return client;
+}
+
+export function api(baseOrOptions = '/api') {
+  const options = resolveGlobalOptions(baseOrOptions);
+  const snapPrefix = typeof options.snapPrefix === 'string' && options.snapPrefix.trim()
+    ? options.snapPrefix.trim()
+    : SNAP_PREFIX;
+  let request;
+
+  if (options.appsScriptUrl) {
+    request = createAppsScriptRequest(options.appsScriptUrl);
+  } else {
+    request = createKvRequest(options.baseUrl || '/api');
+  }
+
+  return createClient(request, { snapPrefix });
 }
 
 const defaultClient = api();
